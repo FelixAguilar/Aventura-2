@@ -8,16 +8,17 @@
 * Date: 
 */
 
+// Libreries.
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <string.h>
+
 //Constants.
 #define _POSIX_C_SOURCE 200112L
 #define COMMAND_LINE_SIZE 1024
 #define ARGS_SIZE 64
 #define PROMPT '$'
-
-// Libreries.
-#include <stdio.h>
-#include <stdlib.h>
-#include <unistd.h>
 
 // Function headers.
 char * read_line(char *line);
@@ -36,7 +37,7 @@ int main(){
     char *cmd = (char *) malloc (sizeof(char) * COMMAND_LINE_SIZE);
     if (cmd){
         while(read_line(cmd)){
-            execute_line(cmd);
+                 execute_line(cmd);
         }
     }
     return 0;
@@ -77,10 +78,11 @@ int execute_line(char *line){
 
 int parse_args(char **args, char *line){
     int i = 0;
-    char *token = strtok(line, " ");
+    char * token = malloc(sizeof(char) * COMMAND_LINE_SIZE);
+    line = strtok(line, "\n");
+    token = strtok(line, " ");
     args [i] = token;
     while (token != NULL){
-        printf("%s\n", args[i]);
         i++;
         token = strtok(NULL, " ");
         args[i] = token;
@@ -94,24 +96,24 @@ int check_internal(char **args){
     const char source[] = "source";
     const char jobs[] = "jobs";
     const char ex[] = "exit";
-
-    if(strcmp(args[0],cd)==0){
+    
+    if(!strcmp(args[0],cd)){
         internal_cd(args);
         internalCom=1;
     }
-    else if(strcmp(args[0],export)==0){
+    else if(!strcmp(args[0],export)){
         internal_export(args);
         internalCom=1;
     }
-    else if(strcmp(args[0],source)==0){
+    else if(!strcmp(args[0],source)){
         internal_source(args);
         internalCom=1;
     }
-    else if(strcmp(args[0],jobs)==0){
+    else if(!strcmp(args[0],jobs)){
         internal_jobs(args);
         internalCom=1;
     }
-    else if(strcmp(args[0],ex)==0){
+    else if(!strcmp(args[0],ex)){
         exit(0);
     }
 
