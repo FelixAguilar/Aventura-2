@@ -75,7 +75,7 @@ int check_internal(char **args){
     const char export[]= "export";
     const char source[] = "source";
     const char jobs[] = "jobs";
-    const char exit[] = "exit";
+    const char ex[] = "exit";
 
     if(strcmp(args[0],cd)==0){
         internal_cd(args);
@@ -93,7 +93,7 @@ int check_internal(char **args){
         internal_jobs(args);
         internalCom=1;
     }
-    else if(strcmp(args[0],exit){
+    else if(strcmp(args[0],ex){
         exit(0);
     }
 
