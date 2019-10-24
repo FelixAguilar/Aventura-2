@@ -81,19 +81,19 @@ int check_internal(char **args){
         internal_cd(args);
         internalCom=1;
     }
-    else if(strcmp(args[0],export){
+    else if(strcmp(args[0],export)==0){
         internal_export(args);
         internalCom=1;
     }
-    else if(strcmp(args[0],source){
+    else if(strcmp(args[0],source)==0){
         internal_source(args);
         internalCom=1;
     }
-    else if(strcmp(args[0],jobs){
+    else if(strcmp(args[0],jobs)==0){
         internal_jobs(args);
         internalCom=1;
     }
-    else if(strcmp(args[0],ex){
+    else if(strcmp(args[0],ex)==0){
         exit(0);
     }
 
