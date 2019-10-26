@@ -87,6 +87,7 @@ int parse_args(char **args, char *line){
         token = strtok(NULL, " ");
         args[i] = token;
     }
+    return i;
 }
 
 int check_internal(char **args){
