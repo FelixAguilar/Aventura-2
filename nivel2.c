@@ -27,6 +27,7 @@ char * read_line(char *line);
 int execute_line(char *line);
 int parse_args(char **args, char *line);
 int check_internal(char **args);
+int aux_internal_cd(char **args, char *path, char c);
 int internal_cd(char **args);
 int internal_export(char **args);
 int internal_source(char **args);
@@ -64,8 +65,8 @@ char * read_line(char *line){
     
     // Allocates memory for the prompt and check if it has been able to do it.
     char *prompt = malloc (sizeof(char) * COMMAND_LINE_SIZE);
-    if (prompt)
-    {
+    if (prompt){
+
         // Gets the current work directory.
         getcwd(prompt,COMMAND_LINE_SIZE);
         
@@ -109,9 +110,8 @@ int execute_line(char *line){
         
         // liberates the memory for tha arguments.
         free(args);
-        return 0;
     }
-    return -1;
+    return 0;
 }
 
 /*
@@ -211,38 +211,111 @@ int check_internal(char **args){
 /*
 * Function: internal_cd:
 * ----------------------
-*
+* Changes the working directory for the one introduced as parameter. If there 
+* is no arguments introduced it will go to the user home. Also it will acept 
+* directory with blank spaces thanks to the auxiliary function.
 *
 *  args: pointer to the pointers for all tokens obteined from the line.
 *
-*  returns:
+*  returns: 0 is it was executed correctly, -1 if an error has been produced.
 */
 int internal_cd(char **args){
-    
+
+    // Allocates memory to show the working directory (temporal).
     char *pwd = (char *) malloc (sizeof(char) * COMMAND_LINE_SIZE);
-    if(pwd){
-        if(args[1]){
-            if(!chdir(args[1])){
-                getcwd(pwd, COMMAND_LINE_SIZE);
-                
-                // (temporal).
-                printf("[internal_cd()-> %s\n]", pwd);
-            }else{
-                fprintf(stderr, "chdir(): %s\n", strerror(errno));
-            }
+
+    // Checks if there was an argument, if not, goes to the HOME.
+    if(args[1]){
+
+        // Allocates memory for the path introduced as argument.
+        char *path = (char *) malloc (sizeof(char) * COMMAND_LINE_SIZE);
+
+        // Copies the first argument to the path.
+        strcpy(path, args[1]);
+
+        // If there was blanks indicated by any character and treats them. 
+        aux_internal_cd(args, path, '\"');
+        aux_internal_cd(args, path, '\'');
+        aux_internal_cd(args, path, '\\');
+
+        // Changes the working directory and checks if it was successful. 
+        if(chdir(path)){
+
+            // Prints the error in stderr.
+            fprintf(stderr, "chdir(): %s\n", strerror(errno));
         }else{
-            if(chdir(getenv("HOME"))){
-                getcwd(pwd, COMMAND_LINE_SIZE);
-                            
-                // (temporal).
-                printf("[internal_cd()-> %s\n]", pwd);
-            }else{
-                fprintf(stderr, "chdir(): %s\n", strerror(errno));
-            }
+
+            // To show how it changes. (temporal).
+            getcwd(pwd, COMMAND_LINE_SIZE);
+            printf("[internal_cd()-> %s]\n", pwd);
         }
-        free (pwd);
+
+        // Liberates memory for the path.
+        free (path);
+    }else{
+
+        // Changes the working directory and checks if it was successful.
+        if(chdir(getenv("HOME"))){
+
+            // Prints the error in stderr.
+            fprintf(stderr, "chdir(): %s\n", strerror(errno));
+        }else{
+            
+            // To show how it changes. (temporal).
+            printf("[internal_cd()-> %s]\n", pwd);
+            getcwd(pwd, COMMAND_LINE_SIZE);
+        }
     }
+
+    // Liberates memory for the pwd (temporal).
+    free(pwd);
     return 0;
+}
+
+/*
+* Function: aux_internal_cd:
+* --------------------------
+* Checks if there is blank spaces identified with the character c and if there 
+* are it unifies the path and elimintates all characters c from the path adding 
+* blank spaces between diferent tokens.
+*
+*  args: pointer to the pointers for all tokens obteined from the line.
+*  path: pointer to the string char used to store the path.
+*  c: char used as identifier as a space or union.
+*
+*  returns: 0 is it was executed correctly, -1 if an error has been produced.
+*/
+int aux_internal_cd(char **args, char *path, char c){
+
+    // Checks if there is any character c in the first argument.
+    if (strchr(args[1], c)){
+
+        // Creates the path including the characters c adding blanks.
+        for (int i = 2; i < ARGS_SIZE && args[i] != NULL; i++){
+            strcat(path, " ");
+            strcat(path, args[i]);
+        }
+
+        // Allocates for an auxiliary variable for the path.
+        char *auxpath = (char *) malloc(sizeof(char) * COMMAND_LINE_SIZE);
+
+        // Gets the first part from the path with out the character c.
+        char *aux = strtok(path, &c);
+
+        //While there are characters c in the string path.
+        while (aux){
+
+            // Adds aux to the new path and gets the next part of it.
+            strcat(auxpath, aux);
+            aux = strtok(NULL, &c);
+        }
+
+        // Copies the content of auxpath to the path and eliminates it.
+        strcpy(path, auxpath);
+        free(auxpath);
+        return 0;
+    }
+    return -1;        
 }
 
 int internal_export(char **args){
