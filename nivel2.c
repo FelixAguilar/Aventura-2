@@ -27,7 +27,7 @@ char * read_line(char *line);
 int execute_line(char *line);
 int parse_args(char **args, char *line);
 int check_internal(char **args);
-int aux_internal_cd(char **args, char *path, char c);
+int aux_internal_cd(char *path, char c);
 int internal_cd(char **args);
 int internal_export(char **args);
 int internal_source(char **args);
@@ -232,12 +232,20 @@ int internal_cd(char **args){
 
         // Copies the first argument to the path.
         strcpy(path, args[1]);
+        
+        // Creates the path including the characters c adding blanks.
+        for (int i = 2; i < ARGS_SIZE && args[i] != NULL; i++){
+            strcat(path, " ");
+            strcat(path, args[i]);
+        }
 
         // If there was blanks indicated by any character and treats them. 
-        aux_internal_cd(args, path, '\"');
-        aux_internal_cd(args, path, '\'');
-        aux_internal_cd(args, path, '\\');
+        aux_internal_cd(path, '\"');
+        aux_internal_cd(path, '\'');
+        aux_internal_cd(path, '\\');
 
+        printf("%s", path);
+        
         // Changes the working directory and checks if it was successful. 
         if(chdir(path)){
 
@@ -285,22 +293,19 @@ int internal_cd(char **args){
 *
 *  returns: 0 is it was executed correctly, -1 if an error has been produced.
 */
-int aux_internal_cd(char **args, char *path, char c){
+int aux_internal_cd(char *path, char c){
 
-    // Checks if there is any character c in the first argument.
-    if (strchr(args[1], c)){
-
-        // Creates the path including the characters c adding blanks.
-        for (int i = 2; i < ARGS_SIZE && args[i] != NULL; i++){
-            strcat(path, " ");
-            strcat(path, args[i]);
-        }
-
+    // Checks if there is any character c in the path.
+    if (strchr(path, c)){
+        
         // Allocates for an auxiliary variable for the path.
         char *auxpath = (char *) malloc(sizeof(char) * COMMAND_LINE_SIZE);
 
         // Gets the first part from the path with out the character c.
         char *aux = strtok(path, &c);
+        
+        // Cleans the auxiliary path.
+        strcpy(auxpath, "");
 
         //While there are characters c in the string path.
         while (aux){
