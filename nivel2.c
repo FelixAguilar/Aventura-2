@@ -324,7 +324,18 @@ int aux_internal_cd(char *path, char c){
 }
 
 int internal_export(char **args){
-    printf("This function will asign values to environment variables.\n");
+    if(args[1] && !args[2]){       
+        strtok(args[1],"=");
+        char *token = strtok(NULL,"=");
+        printf("nombre: %s\n",args[1]);
+        printf("valor: %s\n", token);
+        printf("antiguo valor: %s\n", getenv(args[1]));
+        setenv(args[1],token,1);
+        printf("nuevo valor: %s\n", getenv(args[1]));
+    }else{
+        fprintf(stderr, "Error de sintaxis. Uso: export nombre=valor\n");
+    }
+    
     return 0;
 }
 
