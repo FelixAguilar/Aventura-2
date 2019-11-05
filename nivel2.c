@@ -322,7 +322,6 @@ int aux_internal_cd(char *path, char c){
     }
     return -1;        
 }
-
 /*
 * Function: internal_export:
 * --------------------------
@@ -335,15 +334,21 @@ int aux_internal_cd(char *path, char c){
 */
 int internal_export(char **args){
     
-    //Checks if the first argument is different form 0 and if the second one is equal to NULL.
+    //Checks if the first argument is different form 0 and if the second one is
+    //equal to NULL.
     if(args[1] && !args[2]){   
         
         //Chops the first arguments in two tokens.
         strtok(args[1],"=");
         
-        //Chops the second token of the argument in two more tokens and assigns the first one to token.
+        //Chops the second token of the argument in two more tokens and assigns
+        //the first one to token.
         char *token = strtok(NULL,"=");
         
+            //Checks if the first token is different form 0 and if the second one is
+            //equal to NULL.
+            if(token && !args[2]){
+       
         //Print the values of the different tokens
         printf("nombre: %s\n",args[1]);
         printf("valor: %s\n", token);
@@ -352,6 +357,9 @@ int internal_export(char **args){
         //Updates the value of the environment variable and prints it.
         setenv(args[1],token,1);
         printf("nuevo valor: %s\n", getenv(args[1]));
+            }else{
+                fprintf(stderr, "Error de sintaxis. Uso: export nombre=valor\n");
+            }
         
         //Prints the correct sintaxis if the introduced args are not correct.
     }else{
