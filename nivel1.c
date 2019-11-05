@@ -132,6 +132,12 @@ int parse_args(char **args, char *line){
     // Checks and cleans the character "\n" at the end of the string line.
     line = strtok(line, "\n");
 
+    // Changes all the tabs before # with blanks.
+    while(strchr(line, '\t') < strchr(line, '#')){
+        token = strchr(line, '\t');
+        *(token) = ' ';
+    }
+
     // Gets the first token and saves it in args.
     token = strtok(line, " ");
     args[ntoken] = token;
