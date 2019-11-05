@@ -106,18 +106,6 @@ int execute_line(char *line){
         // If there is no arguments then skip the execution.
         if(args[0]){
         check_internal(args);
-
-        pid_t pid;
-
-        pid=fork();
-        if(pid==0){
-            execvp(args[0],args);
-            fprintf(stderr, "Ha habido un error en execvp\n");
-            exit(-1);
-        }else if(pid>0){
-            
-
-        }
         }
         
         // liberates the memory for tha arguments.
@@ -145,6 +133,12 @@ int parse_args(char **args, char *line){
 
     // Checks and cleans the character "\n" at the end of the string line.
     line = strtok(line, "\n");
+
+    // Changes all the tabs before # with blanks.
+    while(strchr(line, '\t') < strchr(line, '#')){
+        token = strchr(line, '\t');
+        *(token) = ' ';
+    }
 
     // Gets the first token and saves it in args.
     token = strtok(line, " ");
@@ -335,20 +329,42 @@ int aux_internal_cd(char *path, char c){
     return -1;        
 }
 
+/*
+* Function: internal_export:
+* --------------------------
+* Changes an env variable indicated in the args with the new value.
+*  
+*  args: pointer to the pointers for all tokens obteined from the line.
+*
+*  returns: 0 is it was executed correctly, -1 if an error has been produced.
+*/
 int internal_export(char **args){
-    if(args[1] && !args[2]){       
+
+    // Checks if it have the arguments correctly.
+    if(args[1] && !args[2]){
+
+        // Divides the arg 1 using the = as separator.
         strtok(args[1],"=");
-        char *token = strtok(NULL,"=");
-        printf("nombre: %s\n",args[1]);
-        printf("valor: %s\n", token);
-        printf("antiguo valor: %s\n", getenv(args[1]));
-        setenv(args[1],token,1);
-        printf("nuevo valor: %s\n", getenv(args[1]));
-    }else{
-        fprintf(stderr, "Error de sintaxis. Uso: export nombre=valor\n");
-    }
-    
-    return 0;
+        char *token = strtok(NULL,"="); 
+
+        // Checks if the estructure NAME=value was introduced correctly.
+        if(args[1] && token){ 
+
+            // Prints values introduced and the current one (temporal).    
+            printf("nombre: %s\n",args[1]);
+            printf("valor: %s\n", token);
+            printf("antiguo valor: %s\n", getenv(args[1]));
+
+            // Changes the values of the env variable.
+            setenv(args[1],token,1);
+
+            // Prints the new value of the env variable (temporal).
+            printf("nuevo valor: %s\n", getenv(args[1]));
+            return 0;
+        }
+    }   
+    fprintf(stderr, "Error de sintaxis. Uso: export nombre=valor\n");
+    return -1;
 }
 
 int internal_source(char **args){
