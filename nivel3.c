@@ -106,6 +106,18 @@ int execute_line(char *line){
         // If there is no arguments then skip the execution.
         if(args[0]){
         check_internal(args);
+
+        pid_t pid;
+
+        pid=fork();
+        if(pid==0){
+            execvp(args[0],args);
+            fprintf(stderr, "Ha habido un error en execvp\n");
+            exit(-1);
+        }else if(pid>0){
+            
+
+        }
         }
         
         // liberates the memory for tha arguments.
