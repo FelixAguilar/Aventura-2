@@ -323,6 +323,16 @@ int aux_internal_cd(char *path, char c){
     return -1;        
 }
 
+/*
+* Function: internal_export:
+* --------------------------
+* Chops in tokens the NAME=VALUE argument.
+* Notifies the correct sintaxis if the introduced args are not correct, making
+* use of the standard error output stderr.
+* Asigns the new value with the setenv() function.
+*  args: pointer to the argument that has to be chopped in tokens.
+*  returns: 0 is it was executed correctly, -1 if an error has been produced.
+*/
 int internal_export(char **args){
     if(args[1] && !args[2]){       
         strtok(args[1],"=");
