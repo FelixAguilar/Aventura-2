@@ -107,25 +107,50 @@ int execute_line(char *line){
         
         // If there is no arguments then skip the execution.
         if(args[0]){
+
+            // Checks if it is an internal command if not then execute this.
             if(check_internal(args)){
+
+                // Creates a new thread and obteins his pid.
                 pid_t pid = fork();
+
+                // If it is the father then execute this.
                 if (pid > 0){
+
+                    // Waits until the son ends and checks his status.
                     int status;
                     pid = wait(&status);
+
+                    // If was finished with exit.
                     if(WIFEXITED(status)){
                         printf("[Proceso hijo %d finalizado con exit(), estado: %d]\n", pid, WEXITSTATUS(status));
-                    }else if(WIFSIGNALED(status)){
+                    }
+                    
+                    // If was finished with 
+                    else if(WIFSIGNALED(status)){
                         printf("[Proceso hijo %d finalizado por señal, estado: %d]\n", pid, WTERMSIG(status));
                     }
-                }else if (pid == 0){
+                }
+                
+                // If it is the son execute this.
+                else if (pid == 0){
                     printf("[execute_line()→ PID padre: %d]\n", getppid());
                     printf("[execute_line()→ PID hijo: %d]\n", getpid());
+
+                    // Executes the command introduced using args.
                     if(execvp(args[0], args)){
+
+                        // if there is an error then shows it and exits.
                         perror(args[0]);
                         exit(EXIT_FAILURE);
                     }
+
+                    // Else exit.
                     exit(EXIT_SUCCESS);
-                }else {
+                }
+
+                // If an error ocurred creating the son then error and exit.
+                else{
                     perror("fork");
                     exit(EXIT_FAILURE);
                 }
@@ -158,35 +183,41 @@ int parse_args(char **args, char *line){
     // Checks and cleans the character "\n" at the end of the string line.
     line = strtok(line, "\n");
 
-    // Changes all the tabs with blanks.
-    while(strchr(line, '\t')){
-        token = strchr(line, '\t');
-        *(token) = ' ';
-    }
+    // Checks if line is empty or not.
+    if (line)
+    {
 
-    // Gets the first token and saves it in args.
-    token = strtok(line, " ");
-    args[ntoken] = token;
-
-    // Loop until obteining a token that is NULL or a comment.
-    while (args[ntoken]){
-
-        // If there is a token that starts with "#" then there is a comment.
-        if(*(token) == '#'){
-
-            // Stops the search for tokens and adds the sentinel at args.
-            args[ntoken] = NULL;
+        // Changes all the tabs with blanks.
+        while(strchr(line, '\t')){
+            token = strchr(line, '\t');
+            *(token) = ' ';
         }
-        else{
 
-            // It obteins the next token and move by 1 the pointer of args.
-            ntoken++;
-            token = strtok(NULL, " ");
+        // Gets the first token and saves it in args.
+        token = strtok(line, " ");
+        args[ntoken] = token;
 
-            // Saves in args the obteined token.
-            args[ntoken] = token;
+        // Loop until obteining a token that is NULL or a comment.
+        while (args[ntoken]){
+
+            // If there is a token that starts with "#" then there is a comment.
+            if(*(token) == '#'){
+
+                // Stops the search for tokens and adds the sentinel at args.
+                args[ntoken] = NULL;
+            }
+            else{
+
+                // It obteins the next token and move by 1 the pointer of args.
+                ntoken++;
+                token = strtok(NULL, " ");
+
+                // Saves in args the obteined token.
+                args[ntoken] = token;
+            }
         }
     }
+    
     return ntoken;
 }
 
