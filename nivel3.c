@@ -21,6 +21,8 @@
 #include <string.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 // Function headers.
 char * read_line(char *line);
@@ -105,7 +107,29 @@ int execute_line(char *line){
         
         // If there is no arguments then skip the execution.
         if(args[0]){
-        check_internal(args);
+            if(check_internal(args)){
+                pid_t pid = fork();
+                if (pid > 0){
+                    int status;
+                    pid = wait(&status);
+                    if(WIFEXITED(status)){
+                        printf("[Proceso hijo %d finalizado con exit(), estado: %d]\n", pid, WEXITSTATUS(status));
+                    }else if(WIFSIGNALED(status)){
+                        printf("[Proceso hijo %d finalizado por señal, estado: %d]\n", pid, WTERMSIG(status));
+                    }
+                }else if (pid == 0){
+                    printf("[execute_line()→ PID padre: %d]\n", getppid());
+                    printf("[execute_line()→ PID hijo: %d]\n", getpid());
+                    if(execvp(args[0], args)){
+                        perror(args[0]);
+                        exit(EXIT_FAILURE);
+                    }
+                    exit(EXIT_SUCCESS);
+                }else {
+                    perror("fork");
+                    exit(EXIT_FAILURE);
+                }
+            }
         }
         
         // liberates the memory for tha arguments.
@@ -134,8 +158,8 @@ int parse_args(char **args, char *line){
     // Checks and cleans the character "\n" at the end of the string line.
     line = strtok(line, "\n");
 
-    // Changes all the tabs before # with blanks.
-    while(strchr(line, '\t') < strchr(line, '#')){
+    // Changes all the tabs with blanks.
+    while(strchr(line, '\t')){
         token = strchr(line, '\t');
         *(token) = ' ';
     }
@@ -175,12 +199,12 @@ int parse_args(char **args, char *line){
 *
 *  args: pointer to the pointers for all tokens obteined from the line.
 *
-*  returns: 1 if it is a internal command, else 0.
+*  returns: 0 if it is a internal command, else -1.
 */
 int check_internal(char **args){
     
     // Return value.
-    int internalCom=0;
+    int internalCom = -1;
 
     // Internal commands.
     const char cd[] = "cd";
@@ -192,19 +216,19 @@ int check_internal(char **args){
     //Checks if it is an internal command, updates return value and calls it.
     if(!strcmp(args[0],cd)){
         internal_cd(args);
-        internalCom=1;
+        internalCom = 0;
     }
     else if(!strcmp(args[0],export)){
         internal_export(args);
-        internalCom=1;
+        internalCom = 0;
     }
     else if(!strcmp(args[0],source)){
         internal_source(args);
-        internalCom=1;
+        internalCom = 0;
     }
     else if(!strcmp(args[0],jobs)){
         internal_jobs(args);
-        internalCom=1;
+        internalCom = 0;
     }
     else if(!strcmp(args[0],ex)){
         exit(0);
@@ -256,7 +280,7 @@ int internal_cd(char **args){
         if(chdir(path)){
 
             // Prints the error in stderr.
-            fprintf(stderr, "chdir(): %s\n", strerror(errno));
+            perror("chdir");
         }else{
 
             // To show how it changes. (temporal).
@@ -272,7 +296,7 @@ int internal_cd(char **args){
         if(chdir(getenv("HOME"))){
 
             // Prints the error in stderr.
-            fprintf(stderr, "chdir(): %s\n", strerror(errno));
+            perror("chdir");
         }else{
             
             // To show how it changes. (temporal).
@@ -370,7 +394,7 @@ int internal_export(char **args){
 int internal_source(char **args){
     FILE *fp;
     char *line;
-    fp = fopen(args[1],r); // Abre el fichero script en modo lectura (modo r)
+    fp = fopen(args[1],"r");
     if(fp == NULL){
         fprintf(stderr, "File does not exist or can not be opened\n");
         exit(EXIT_FAILURE);

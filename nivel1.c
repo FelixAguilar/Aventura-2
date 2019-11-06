@@ -133,7 +133,7 @@ int parse_args(char **args, char *line){
     line = strtok(line, "\n");
 
     // Changes all the tabs before # with blanks.
-    while(strchr(line, '\t') < strchr(line, '#')){
+    while(strchr(line, '\t')){
         token = strchr(line, '\t');
         *(token) = ' ';
     }
