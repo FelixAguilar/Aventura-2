@@ -422,23 +422,45 @@ int internal_export(char **args){
     return -1;
 }
 
+/*
+* Function: internal_source:
+* --------------------------
+* Allows the execution of multiple predefined commands contained in a script
+* file. 
+*  args: pointer to the pointers for all tokens obtained from the line.
+*
+*  returns: EXIT_SUCCES if executed correctly or EXIT_FAILURE if there was a 
+*  problem.
+*/
 int internal_source(char **args){
-    FILE *fp;
-    char *line;
-    fp = fopen(args[1],"r");
-    if(fp == NULL){
-        fprintf(stderr, "File does not exist or can not be opened\n");
-        exit(EXIT_FAILURE);
-    }else{
-        fgets(line,COMMAND_LINE_SIZE, fp);
-        while(line != NULL){
-            execute_line(line);
-            fflush(fp);
-            fgets(line,COMMAND_LINE_SIZE, fp);
+    // allocates memory for a variable where the command to be executed
+    // will be stored
+    char *line = (char *) malloc(sizeof(char)*COMMAND_LINE_SIZE); 
+    if(line){
+        // we open a file in reading mode
+        FILE *fp = fopen(args[1],"r");
+        if(fp){
+            // we obtain the lines one by one and we execute them calling the 
+            // execute_line method.
+            while(fgets(line,COMMAND_LINE_SIZE, fp)){
+                execute_line(line);
+                // we empty the buffer after reading each line to avoid
+                // problems when a wrong written command is read from the file.
+                fflush(fp);
+            }
+            // the file is closed and we free the memory that was reserved for
+            // the line variable.
+            fclose(fp);
+            free(line);
+            return EXIT_SUCCESS;
+        }else{
+            // if there was a problem we notify it 
+            fprintf(stderr, "File does not exist or can not be opened\n");
+            // we have to free the allocated memory if there was an error aswell
+            free(line);
         }
     }
-    fclose(fp);
-    return 0;
+    return EXIT_FAILURE;
 }
 
 int internal_jobs(char **args){
