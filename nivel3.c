@@ -454,9 +454,9 @@ int internal_source(char **args){
             free(line);
             return EXIT_SUCCESS;
         }else{
-            // if there was a problem we notify it 
+            // if there was a problem we notify it.
             fprintf(stderr, "File does not exist or can not be opened\n");
-            // we have to free the allocated memory if there was an error aswell
+            // we have to free the allocated memory if there was an error aswell.
             free(line);
         }
     }
