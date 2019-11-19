@@ -24,6 +24,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <signal.h>
 
 // Structure for the storage of a process.
 struct info_process {
@@ -48,6 +49,8 @@ void ctrlc(int signum);
 // Creates the struct for the job list.
 static struct info_process jobs_list[N_JOBS];
 
+static char name[COMMAND_LINE_SIZE];
+
 /*
 * Main program, here starts the execution.
 */
@@ -63,7 +66,9 @@ int main ( int argc, char **argv ) {
     jobs_list[0].pid = 0;
     jobs_list[0].status = 'E';
     strcpy(jobs_list[0].command_line, argv[0]);
-    printf("%s", jobs_list[0].command_line);
+    
+    //
+    strcpy(name, argv[0]);
     
     // Allocates memory for the input command line.
     char *cmd = (char *) malloc (sizeof(char) * COMMAND_LINE_SIZE);
@@ -102,7 +107,26 @@ char * read_line(char *line){
         printf ("%s %c ",prompt, PROMPT);
         
         // Reads input introduced in stdin by the user.
-        fgets(line, COMMAND_LINE_SIZE, stdin);
+        char *ptr = fgets(line, COMMAND_LINE_SIZE, stdin);
+
+          if (!ptr) {
+               printf("\r");
+              if (feof(stdin)) {
+                  
+                  //printf("Has pulsado Ctrl+D");
+                  exit(0);
+              }
+              else {
+                  
+                  // si no al pulsar inicialmente CTRL+C sale fuera del shell
+                  ptr = line;
+                  // Si se omite esta línea aparece error ejecución ": no se encontró la orden"
+                  ptr[0] = 0;
+              }
+          }
+
+          return ptr;
+
         
         // frees the memory for prompt.
         free(prompt);
@@ -143,23 +167,14 @@ int execute_line(char *line){
                 // If it is the father then execute this.
                 if (pid > 0){
 
-                    
-                    int status;
+                    // Sets values for the foreground process.
+                    jobs_list[0].pid = pid;
+                    jobs_list[0].status = 'E';
+                    strcpy(jobs_list[0].command_line, line);
                     
                     // Waits until the sons ends with pause.
-                    jobs_list[0].pid = pid;
                     while (jobs_list[0].pid) {
                         pause();
-                    }
-
-                    // If was finished with exit.
-                    if(WIFEXITED(status)){
-                        printf("[Proceso hijo %d finalizado con exit(), estado: %d]\n", pid, WEXITSTATUS(status));
-                    }
-                    
-                    // If was finished with a signal.
-                    else if(WIFSIGNALED(status)){
-                        printf("[Proceso hijo %d finalizado por señal, estado: %d]\n", pid, WTERMSIG(status));
                     }
                 }
                 
@@ -368,7 +383,7 @@ int internal_cd(char **args){
         }else{
             
             // To show how it changes. (temporal).
-            printf("[internal_cd()-> %s]\n", pwd);
+            printf("[internal_cd()-> %s]\n", getenv("HOME"));
             getcwd(pwd, COMMAND_LINE_SIZE);
         }
     }
@@ -505,12 +520,46 @@ int internal_jobs(char **args){
     return 0;
 }
 
+// Eliminador de hijos.
 void reaper(int signum){
+    
+    int status;
+    pid_t pid;
+    
+    while ((pid=waitpid(-1, &status, WNOHANG)) > 0) {
+        jobs_list[0].pid = 0;
+        jobs_list[0].status = 'F';
+        jobs_list[0].command_line[0] = '\0';
+        
+        // If was finished with exit.
+        if(WIFEXITED(status)){
+            printf("[Proceso hijo %d finalizado con exit(), estado: %d]\n", pid, WEXITSTATUS(status));
+        }
+        
+        // If was finished with a signal.
+        else if(WIFSIGNALED(status)){
+            printf("[Proceso hijo %d finalizado por señal, estado: %d]\n", pid, WTERMSIG(status));
+        }
+    }
     
     signal(SIGCHLD, reaper);
 }
 
+
+// Funcion para la señal control c.
 void ctrlc(int signum){
+    
+    if(jobs_list[0].pid > 0){
+        if (strcmp(jobs_list[0].command_line, name)){
+            kill(jobs_list[0].pid,SIGTERM);
+        }
+        else{
+            fprintf(stderr,"Señal SIGTERM no enviada debido a que el proceso en foreground es el shell.\n");
+        }
+    }
+    else{
+        fprintf(stderr,"Señal SIGTERM no enviada debido a que no hay proceso en foreground.\n");
+    }
     
     signal(SIGINT, ctrlc);
 }
