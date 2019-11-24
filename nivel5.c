@@ -736,7 +736,7 @@ int  jobs_list_remove(int pos){
 }
 
 void ctrlz(int signum){
-    if(jobs_list[FOREGROUND].pid == MINISHELL){
+    if(jobs_list[FOREGROUND].pid != MINISHELL){
         if(strcmp(jobs_list[FOREGROUND].command_line, minishell_name)){
             kill(jobs_list[FOREGROUND].pid,SIGTSTP);
             jobs_list[FOREGROUND].status = STOPPED;
@@ -771,5 +771,7 @@ int is_background(char** args){
     if(!strcmp(args[ind], "&"))
         {
             args[ind] = NULL;
+            bkg = -1;
         }
+    return bkg;
 }
