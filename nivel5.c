@@ -227,8 +227,10 @@ int execute_line(char *line)
                 {
 
                     // (Temporal)
-                    printf("[execute_line()→ PID padre: %d]\n", getppid());
-                    printf("[execute_line()→ PID hijo: %d]\n", getpid());
+                    printf("[execute_line()→ PID padre: %d (%s)]\n", getppid()
+                    , minishell.command_line;);
+                    printf("[execute_line()→ PID hijo: %d (%s)]\n", getpid()
+                    , jobs_list_find[getpid()].command_line);
                     
                     // If it is a background process, ignore SIGTSTP.
                     if(bkg){
@@ -670,7 +672,8 @@ void reaper(int signum){
 */
 void ctrlc(int signum)
 {
-
+printf("[ctrlc() → Soy el proceso con PID %d (%s), el proceso en foreground es 
+0()]",jobs_list[FOREGROUND].pid, minishell.command_line);
     // If it is a son.
     if (jobs_list[FOREGROUND].pid > 0)
     {
@@ -683,15 +686,16 @@ void ctrlc(int signum)
         else
         {
             // Prints error.
-            fprintf(stderr, "Señal SIGTERM no enviada debido a que el proceso"
-                " en foreground es el shell.\n");
+            fprintf(stderr, "[ctrlc() → Señal 15 no enviada debido a que el 
+            proceso" " en foreground es el shell]\n");
         }
     }
     else
     {
         // Prints error.
-        fprintf(stderr, "Señal SIGTERM no enviada debido a que no hay proceso"
-            " en foreground.\n");
+        fprintf(stderr, "[ctrlc() → Señal 15 no enviada por %d (%s) debido a 
+        que no hay proceso" " en foreground]\n", jobs_list[FOREGROUND].pid, 
+        jobs_list[FOREGROUND].command_line);
     }
 
     // Sets again SIGINT to the function ctrlc.
@@ -736,6 +740,10 @@ int  jobs_list_remove(int pos){
 }
 
 void ctrlz(int signum){
+    printf("[ctrlz() → Soy el proceso con PID %d, el proceso en foreground es 
+    %d (%s)"], getpid(), jobs_list[FOREGROUND].pid, 
+    jobs_list[FOREGROUND].command_line);
+
     if(jobs_list[FOREGROUND].pid != MINISHELL){
         if(strcmp(jobs_list[FOREGROUND].command_line, minishell_name)){
             kill(jobs_list[FOREGROUND].pid,SIGTSTP);
@@ -745,19 +753,23 @@ void ctrlz(int signum){
             jobs_list[FOREGROUND].pid = MINISHELL;
             jobs_list[FOREGROUND].status = EXECUTED;
             strcpy(jobs_list[FOREGROUND].command_line, minishell_name);
+
+            printf("[Señal 20 (SIGTSTP) enviada a %d (%s) por %d (%s)]",
+            jobs_list[FOREGROUND].pid, jobs_list[FOREGROUND].command_line 
+            , getpid(), minishell.command_line);
         }
         else
         {
             // Prints error.
-            fprintf(stderr, "Señal SIGTSTP no enviada debido a que el proceso"
-                " en foreground es el shell.\n");
+            fprintf(stderr, "Señal 20 (SIGTSTP) no enviada debido a que el 
+            proceso" " en foreground es el shell.\n");
         }
     }
     else
     {
-        // Prints error.
-        fprintf(stderr, "Señal SIGTSTP no enviada debido a que no hay proceso"
-            " en foreground.\n");
+            // Prints error.
+            fprintf(stderr, "Señal 20 (SIGTSTP) no enviada debido a que no hay 
+            proceso" " en foreground.\n");
     }
     signal(SIGTSTP,ctrlz);
 }
