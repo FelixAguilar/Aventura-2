@@ -117,7 +117,6 @@ int main(int argc, char **argv)
         // Read line and execute it.
         while (read_line(line))
         {
-            strcpy(jobs_list[FOREGROUND].command_line, line);
             execute_line(line);
         }
     }
@@ -154,7 +153,7 @@ char *read_line(char *line)
         if (!ptr)
         {
             printf("\r");
-            
+
             // If stdin is end of file then exits from the file.
             if (feof(stdin))
             {
@@ -221,7 +220,7 @@ int execute_line(char *line)
                         jobs_list[FOREGROUND].pid = pid;
                         jobs_list[FOREGROUND].status = EXECUTED;
                         strcpy(jobs_list[FOREGROUND].command_line, line);
-                        
+
                         // (Temporal)
                         printf("[execute_line()→ PID padre: %d (%s)]", minishell.pid, minishell.command_line);
                         printf("\n[execute_line()→ PID hijo: %d (%s)]\n", pid, jobs_list[FOREGROUND].command_line);
@@ -231,6 +230,11 @@ int execute_line(char *line)
                         {
                             pause();
                         }
+
+                        // Sets values for the foreground process.
+                        jobs_list[FOREGROUND].pid = foreground.pid;
+                        jobs_list[FOREGROUND].status = foreground.status;
+                        strcpy(jobs_list[FOREGROUND].command_line, foreground.command_line);
                     }
                 }
                 // If it is the son then execute this.
@@ -800,25 +804,23 @@ void ctrlc(int signum)
             // If it is not the minishell then send SIGTERM to the process.
             kill(jobs_list[FOREGROUND].pid, SIGTERM);
 
-            printf("[ctrlc() → Señal %d enviada a %d (%s) por %d (%s)]\n", signum,
+            printf("[ctrlc() → Señal 15 enviada a %d (%s) por %d (%s)]\n",
                    jobs_list[FOREGROUND].pid, jobs_list[FOREGROUND].command_line,
                    getpid(), minishell.command_line);
         }
         else
         {
             // Prints error.
-            printf("[ctrlc() → Señal %d no enviada debido a que el "
-                   "proceso en foreground es el shell]\n",
-                   signum);
+            printf("[ctrlc() → Señal 15 no enviada debido a que el "
+                   "proceso en foreground es el shell]\n");
         }
     }
     else
     {
         // Prints error.
-        printf("[ctrlc() → Señal %d no enviada por %d (%s) debido a "
+        printf("[ctrlc() → Señal no enviada por %d (%s) debido a "
                "que no hay proceso en foreground]\n",
-               signum,
-               getpid(), jobs_list[FOREGROUND].command_line);
+               getpid(), minishell.command_line);
     }
 
     // Sets again SIGINT to the function ctrlc.
@@ -858,12 +860,12 @@ void ctrlz(int signum)
             jobs_list_add(jobs_list[FOREGROUND].pid, jobs_list[FOREGROUND].status,
                           jobs_list[FOREGROUND].command_line);
 
-            // Updates the foreground with the minishell properties.
-            jobs_list[FOREGROUND].pid = minishell.pid;
-            jobs_list[FOREGROUND].status = minishell.status;
-            strcpy(jobs_list[FOREGROUND].command_line, minishell.command_line);
+            // Updates the foreground with the default foreground properties.
+            jobs_list[FOREGROUND].pid = foreground.pid;
+            jobs_list[FOREGROUND].status = foreground.status;
+            strcpy(jobs_list[FOREGROUND].command_line, foreground.command_line);
 
-            printf("[ctrlz()→ Señal %d (SIGTSTP) enviada a %d (%s) por %d (%s)]", signum,
+            printf("[ctrlz()→ Señal %d (SIGTSTP) enviada a %d (%s) por %d (%s)]\n", signum,
                    jobs_list[FOREGROUND].pid,
                    jobs_list[FOREGROUND].command_line,
                    getpid(), minishell.command_line);
@@ -872,14 +874,16 @@ void ctrlz(int signum)
         {
             // Prints error.
             printf("ctrlz()→ Señal %d (SIGTSTP) no enviada debido a que el "
-                   "proceso en foreground es el shell.\n", signum);
+                   "proceso en foreground es el shell.\n",
+                   signum);
         }
     }
     else
     {
         // Prints error.
         printf("ctrlz()→ Señal %d (SIGTSTP) no enviada debido a que no hay"
-               " proceso en foreground.\n", signum);
+               " proceso en foreground.\n",
+               signum);
     }
     signal(SIGTSTP, ctrlz);
 }
