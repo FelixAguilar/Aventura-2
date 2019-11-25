@@ -104,9 +104,9 @@ int main(int argc, char **argv)
     signal(SIGTSTP, ctrlz);
 
     //Inicialize the fields for foreground process.
-    jobs_list[FOREGROUND].pid = minishell.pid;
-    jobs_list[FOREGROUND].status = minishell.status;
-    strcpy(jobs_list[FOREGROUND].command_line, minishell.command_line);
+    jobs_list[FOREGROUND].pid = foreground.pid;
+    jobs_list[FOREGROUND].status = foreground.status;
+    strcpy(jobs_list[FOREGROUND].command_line, foreground.command_line);
 
     // Allocates memory for the input command line.
     char *line = (char *)malloc(sizeof(char) * COMMAND_LINE_SIZE);
@@ -119,7 +119,6 @@ int main(int argc, char **argv)
         {
             strcpy(jobs_list[FOREGROUND].command_line, line);
             execute_line(line);
-            printf("\n");
         }
     }
     // Liberates memory and returns exit success.
@@ -154,7 +153,8 @@ char *read_line(char *line)
         // If the ptr is null, then process if it is an Ctrl+Letter.
         if (!ptr)
         {
-
+            printf("\r");
+            
             // If stdin is end of file then exits from the file.
             if (feof(stdin))
             {
@@ -221,6 +221,10 @@ int execute_line(char *line)
                         jobs_list[FOREGROUND].pid = pid;
                         jobs_list[FOREGROUND].status = EXECUTED;
                         strcpy(jobs_list[FOREGROUND].command_line, line);
+                        
+                        // (Temporal)
+                        printf("[execute_line()→ PID padre: %d (%s)]", minishell.pid, minishell.command_line);
+                        printf("\n[execute_line()→ PID hijo: %d (%s)]\n", pid, jobs_list[FOREGROUND].command_line);
 
                         // Waits until all son are finished.
                         while (jobs_list[FOREGROUND].pid)
@@ -232,11 +236,6 @@ int execute_line(char *line)
                 // If it is the son then execute this.
                 else if (pid == 0)
                 {
-                    // (Temporal)
-                    printf("\n[execute_line()→ PID padre: %d (%s)]", getppid(),
-                           minishell.command_line);
-                    printf("\n[execute_line()→ PID hijo: %d (%s)]", getpid(),
-                           jobs_list[FOREGROUND].command_line);
 
                     // If it is a background process, ignore SIGTSTP.
                     if (bkg)
@@ -418,8 +417,6 @@ int internal_cd(char **args)
         aux_internal_cd(path, '\'');
         aux_internal_cd(path, '\\');
 
-        printf("%s", path);
-
         // Changes the working directory and checks if it was successful.
         if (chdir(path))
         {
@@ -430,7 +427,7 @@ int internal_cd(char **args)
         {
             // To show how it changes. (temporal).
             getcwd(pwd, COMMAND_LINE_SIZE);
-            printf("[internal_cd()-> %s]", pwd);
+            printf("[internal_cd()→ %s]\n", pwd);
         }
         // Liberates memory for the path.
         free(path);
@@ -447,7 +444,7 @@ int internal_cd(char **args)
         {
             // To show how it changes. (temporal).
             getcwd(pwd, COMMAND_LINE_SIZE);
-            printf("[internal_cd()-> %s]", pwd);
+            printf("[internal_cd()→ %s]\n", pwd);
             ;
         }
     }
@@ -520,19 +517,19 @@ int internal_export(char **args)
         if (args[1] && token)
         {
             // Prints values introduced and the current one (temporal).
-            printf("nombre: %s\n", args[1]);
-            printf("valor: %s\n", token);
-            printf("antiguo valor: %s\n", getenv(args[1]));
+            printf("[internal_export()→ nombre: %s]\n", args[1]);
+            printf("[internal_export()→ valor: %s]\n", token);
+            printf("[internal_export()→ antiguo valor: %s]\n", getenv(args[1]));
 
             // Changes the values of the env variable.
             setenv(args[1], token, 1);
 
             // Prints the new value of the env variable (temporal).
-            printf("nuevo valor: %s", getenv(args[1]));
+            printf("[internal_export()→ nuevo valor: %s]\n", getenv(args[1]));
             return EXIT_SUCCESS;
         }
     }
-    fprintf(stderr, "Error de sintaxis. Uso: export nombre=valor");
+    fprintf(stderr, "Error de sintaxis. Uso: export Nombre=Valor\n");
     return EXIT_FAILURE;
 }
 
@@ -572,7 +569,7 @@ int internal_source(char **args)
         else
         {
             // If there was a problem we notify it.
-            fprintf(stderr, "File does not exist or can not be opened\n");
+            fprintf(stderr, "El archivo no existe o no se puede abrir.\n");
 
             // Frees the allocated memory if an error occured aswell.
             free(line);
@@ -625,7 +622,7 @@ int jobs_list_add(pid_t pid, char status, char *command_line)
     }
     else
     {
-        fprintf(stderr, "No more jobs can be added because the maximun has been reached\n");
+        fprintf(stderr, "No se pueden añadir mas trabajos a la lista.\n");
         return EXIT_FAILURE;
     }
 }
@@ -668,7 +665,7 @@ int jobs_list_find(pid_t pid)
 int jobs_list_remove(int position)
 {
     // Checks for a valid position.
-    if (0 < position < N_JOBS)
+    if (0 < position && position < N_JOBS)
     {
         // Gets the info of the last active job.
         pid_t pid_last = jobs_list[active_jobs - 1].pid;
@@ -687,7 +684,7 @@ int jobs_list_remove(int position)
     else
     {
         // Prints error.
-        fprintf(stderr, "The specified position is not correct");
+        fprintf(stderr, "La posisicion introducida es erronea.\n");
         return EXIT_FAILURE;
     }
 }
@@ -740,8 +737,8 @@ void reaper(int signum)
         // If is a foreground process.
         if (pid == jobs_list[FOREGROUND].pid)
         {
-            printf("\n[reaper()→ Proceso hijo %d en foreground (%s) finalizado"
-                   " con exit code %d]",
+            printf("[reaper()→ Proceso hijo %d en foreground (%s) finalizado"
+                   " con exit code %d]\n",
                    pid, jobs_list[FOREGROUND].command_line, WEXITSTATUS(status));
 
             // Sets the job_list[foreground] as it was before.
@@ -757,18 +754,18 @@ void reaper(int signum)
             if (WIFEXITED(status))
             {
                 printf("\n[reaper()→ Proceso hijo %d en background (%s) finalizado"
-                       " con exit code %d]",
+                       " con exit code %d]\n",
                        pid, jobs_list[pos].command_line, WEXITSTATUS(status));
             }
             // If was finished with a signal.
             else if (WIFSIGNALED(status))
             {
-                printf("\n[reaper()→ Proceso hijo %d en background (%s) finalizado"
-                       " por la señal %d]",
+                printf("[reaper()→ Proceso hijo %d en background (%s) finalizado"
+                       " por la señal %d]\n",
                        pid, jobs_list[pos].command_line, WTERMSIG(status));
             }
 
-            printf("\n[Terminado PID %d (%s) en jobs_list[%d] con status %d]",
+            printf("Terminado PID %d (%s) en jobs_list[%d] con status %d\n",
                    pid, jobs_list[pos].command_line, pos, status);
 
             jobs_list_remove(pos);
@@ -790,7 +787,7 @@ void reaper(int signum)
 void ctrlc(int signum)
 {
     printf("\n[ctrlc() → Soy el proceso con PID %d (%s), el proceso en "
-           "foreground es %d(%s)]",
+           "foreground es %d(%s)]\n",
            getpid(), minishell.command_line, jobs_list[FOREGROUND].pid,
            jobs_list[FOREGROUND].command_line);
 
@@ -803,23 +800,23 @@ void ctrlc(int signum)
             // If it is not the minishell then send SIGTERM to the process.
             kill(jobs_list[FOREGROUND].pid, SIGTERM);
 
-            printf("\n[ctrlc() → Señal %d enviada a %d (%s) por %d (%s)]", signum,
+            printf("[ctrlc() → Señal %d enviada a %d (%s) por %d (%s)]\n", signum,
                    jobs_list[FOREGROUND].pid, jobs_list[FOREGROUND].command_line,
                    getpid(), minishell.command_line);
         }
         else
         {
             // Prints error.
-            printf("\n[ctrlc() → Señal %d no enviada debido a que el "
-                   "proceso en foreground es el shell]",
+            printf("[ctrlc() → Señal %d no enviada debido a que el "
+                   "proceso en foreground es el shell]\n",
                    signum);
         }
     }
     else
     {
         // Prints error.
-        printf("\n[ctrlc() → Señal %d no enviada por %d (%s) debido a "
-               "que no hay proceso en foreground]",
+        printf("[ctrlc() → Señal %d no enviada por %d (%s) debido a "
+               "que no hay proceso en foreground]\n",
                signum,
                getpid(), jobs_list[FOREGROUND].command_line);
     }
@@ -840,13 +837,13 @@ void ctrlc(int signum)
 */
 void ctrlz(int signum)
 {
-    printf("[ctrlz() → Soy el proceso con PID %d, el proceso en foreground es"
-           "%d(%s) ",
+    printf("\n[ctrlz()→ Soy el proceso con PID %d, el proceso en foreground es"
+           " %d (%s)]\n",
            getpid(), jobs_list[FOREGROUND].pid,
            jobs_list[FOREGROUND].command_line);
 
-    // Check if the foreground process is not the minishell.
-    if (jobs_list[FOREGROUND].pid != minishell.pid)
+    // Check if there is a foreground process.
+    if (jobs_list[FOREGROUND].pid != foreground.pid)
     {
 
         // Checks if is a son that the foreground process is not a minishell.
@@ -866,7 +863,7 @@ void ctrlz(int signum)
             jobs_list[FOREGROUND].status = minishell.status;
             strcpy(jobs_list[FOREGROUND].command_line, minishell.command_line);
 
-            printf("[Señal 20 (SIGTSTP) enviada a %d (%s) por %d (%s)]",
+            printf("[ctrlz()→ Señal %d (SIGTSTP) enviada a %d (%s) por %d (%s)]", signum,
                    jobs_list[FOREGROUND].pid,
                    jobs_list[FOREGROUND].command_line,
                    getpid(), minishell.command_line);
@@ -874,15 +871,15 @@ void ctrlz(int signum)
         else
         {
             // Prints error.
-            printf("Señal 20 (SIGTSTP) no enviada debido a que el "
-                   "proceso en foreground es el shell.\n");
+            printf("ctrlz()→ Señal %d (SIGTSTP) no enviada debido a que el "
+                   "proceso en foreground es el shell.\n", signum);
         }
     }
     else
     {
         // Prints error.
-        printf("Señal 20 (SIGTSTP) no enviada debido a que no hay"
-               " proceso en foreground.\n");
+        printf("ctrlz()→ Señal %d (SIGTSTP) no enviada debido a que no hay"
+               " proceso en foreground.\n", signum);
     }
     signal(SIGTSTP, ctrlz);
 }
