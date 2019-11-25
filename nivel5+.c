@@ -144,6 +144,7 @@ char *read_line(char *line)
     {
         // Gets the current work directory.
         getcwd(prompt, COMMAND_LINE_SIZE);
+
         // Prints the prompt and the separator.
         printf("%s %s ", prompt, PROMPT);
 
@@ -166,20 +167,15 @@ char *read_line(char *line)
                 ptr = line;
 
                 // This is to avoid the error "command not found".
-                ptr[0] = '\0';
+                ptr[0] = 0;
             }
         }
         // Frees the memory for prompt and cleans stdin.
         free(prompt);
         fflush(stdin);
-
-        // Checks and cleans the character "\n" at the end of the string line.
-        char *n = strchr(line, '\n');
-        *n = '\0';
-
-        // Returns the command line.
-        return ptr;
     }
+    // Returns the command line.
+    return line;
 }
 
 /*
@@ -200,11 +196,20 @@ int execute_line(char *line)
     // Checks if it has been done correctly.
     if (args)
     {
-        strcpy(jobs_list[FOREGROUND].command_line, line);
-
         // Obteins the arguments and if there is no arguments then skip.
         if (parse_args(args, line))
         {
+            char *all = malloc(sizeof(char) * COMMAND_LINE_SIZE);
+            int i = 0;
+            strcat(all, args[i]);
+            i++;
+            while (args[i])
+            {
+                strcat(all, " ");
+                strcat(all, args[i]);
+                i++;
+            }
+
             // Checks if it is an internal command if not then execute this.
             if (check_internal(args))
             {
@@ -217,26 +222,32 @@ int execute_line(char *line)
                 // If it is the father then execute this.
                 if (pid > 0)
                 {
-                    // (Temporal)
-                    printf("[execute_line()→ PID padre: %d (%s)]", minishell.pid, minishell.command_line);
-                    printf("\n[execute_line()→ PID hijo: %d (%s)]\n", pid, jobs_list[FOREGROUND].command_line);
-
                     // If is a background process then add it to the jobs_list.
                     if (bkg)
                     {
-                        jobs_list_add(pid, EXECUTED, jobs_list[FOREGROUND].command_line);
+                        jobs_list_add(pid, EXECUTED, all);
                     }
                     else
                     {
                         // Sets values for the foreground process.
                         jobs_list[FOREGROUND].pid = pid;
                         jobs_list[FOREGROUND].status = EXECUTED;
+                        strcpy(jobs_list[FOREGROUND].command_line, all);
+
+                        // (Temporal)
+                        printf("[execute_line()→ PID padre: %d (%s)]", minishell.pid, minishell.command_line);
+                        printf("\n[execute_line()→ PID hijo: %d (%s)]\n", pid, jobs_list[FOREGROUND].command_line);
 
                         // Waits until all son are finished.
                         while (jobs_list[FOREGROUND].pid)
                         {
                             pause();
                         }
+
+                        // Sets values for the foreground process.
+                        jobs_list[FOREGROUND].pid = foreground.pid;
+                        jobs_list[FOREGROUND].status = foreground.status;
+                        strcpy(jobs_list[FOREGROUND].command_line, all);
                     }
                 }
                 // If it is the son then execute this.
@@ -276,11 +287,6 @@ int execute_line(char *line)
                 }
             }
         }
-        // Sets values for the foreground process.
-        jobs_list[FOREGROUND].pid = foreground.pid;
-        jobs_list[FOREGROUND].status = foreground.status;
-        strcpy(jobs_list[FOREGROUND].command_line, foreground.command_line);
-
         // liberates the memory for the arguments.
         free(args);
     }
@@ -303,6 +309,9 @@ int parse_args(char **args, char *line)
     // Count for the tokens and pointer to for each token.
     int ntoken = 0;
     char *token;
+
+    // Checks and cleans the character "\n" at the end of the string line.
+    line = strtok(line, "\n");
 
     // Checks if line is empty or not.
     if (line)
@@ -358,10 +367,9 @@ int check_internal(char **args)
     const char export[] = "export";
     const char source[] = "source";
     const char jobs[] = "jobs";
+    const char ex[] = "exit";
     const char fg[] = "fg";
     const char bg[] = "bg";
-    const char ex[] = "exit";
-
     //Checks if it is an internal command, updates return value and calls it.
     if (!strcmp(args[0], cd))
     {
@@ -383,6 +391,10 @@ int check_internal(char **args)
         internal_jobs(args);
         return EXIT_SUCCESS;
     }
+    else if (!strcmp(args[0], ex))
+    {
+        exit(0);
+    }
     else if (!strcmp(args[0], fg))
     {
         internal_fg(args);
@@ -392,10 +404,6 @@ int check_internal(char **args)
     {
         internal_bg(args);
         return EXIT_SUCCESS;
-    }
-    else if (!strcmp(args[0], ex))
-    {
-        exit(0);
     }
     // returns if it was an internal command.
     return EXIT_FAILURE;
@@ -695,6 +703,7 @@ int jobs_list_remove(int position)
         jobs_list[position].pid = pid_last;
         jobs_list[position].status = status_last;
         strcpy(jobs_list[position].command_line, command_line_last);
+
         // Updates the active jobs.
         active_jobs--;
         return EXIT_SUCCESS;
@@ -887,15 +896,15 @@ void ctrlz(int signum)
         else
         {
             // Prints error.
-            printf("[ctrlz()→ Señal %d (SIGTSTP) no enviada debido a que el "
-                   "proceso en foreground es el shell.]\n",
+            printf("ctrlz()→ Señal %d (SIGTSTP) no enviada debido a que el "
+                   "proceso en foreground es el shell.\n",
                    signum);
         }
     }
     else
     {
         // Prints error.
-        printf("[ctrlz()→ Señal %d (SIGTSTP) no enviada debido a que no hay"
+        printf("ctrlz()→ Señal %d (SIGTSTP) no enviada debido a que no hay"
                " proceso en foreground.\n",
                signum);
     }
@@ -930,10 +939,10 @@ int internal_fg(char **args)
             }
             return EXIT_SUCCESS;
         }
-        fprintf(stderr, "El trabajo %d no existe.", job);
+        fprintf(stderr, "El trabajo %d no existe.\n", job);
         return EXIT_FAILURE;
     }
-    fprintf(stderr, "La sintaxis es erronea, fg n_job");
+    fprintf(stderr, "La sintaxis es erronea, fg n_job\n");
     return EXIT_FAILURE;
 }
 
@@ -949,15 +958,15 @@ int internal_bg(char **args)
                 strcat(jobs_list[job].command_line, " &\0");
                 jobs_list[job].status = EXECUTED;
                 kill(jobs_list[job].pid, SIGCONT);
-                printf("[internal_bg→ señal %d enviada a %d (%s)]\n", SIGCONT, jobs_list[job].pid, jobs_list[job].command_line);
+                fprintf(stderr,"[internal_bg→ señal %d enviada a %d (%s)]\n", SIGCONT, jobs_list[job].pid, jobs_list[job].command_line);
                 return EXIT_SUCCESS;
             }
-            fprintf(stderr, "El trabajo %d ya se esta en 2º plano.", job);
+            fprintf(stderr, "El trabajo %d ya se esta en 2º plano.\n", job);
             return EXIT_FAILURE;
         }
-        fprintf(stderr, "El trabajo %d no existe.", job);
+        fprintf(stderr, "El trabajo %d no existe.\n", job);
         return EXIT_FAILURE;
     }
-    fprintf(stderr, "La sintaxis es erronea, bg n_job");
+    fprintf(stderr, "La sintaxis es erronea, bg n_job.\n");
     return EXIT_FAILURE;
 }
