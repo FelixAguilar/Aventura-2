@@ -235,8 +235,10 @@ int execute_line(char *line)
                         strcpy(jobs_list[FOREGROUND].command_line, all);
 
                         // (Temporal)
-                        printf("[execute_line()→ PID padre: %d (%s)]", minishell.pid, minishell.command_line);
-                        printf("\n[execute_line()→ PID hijo: %d (%s)]\n", pid, jobs_list[FOREGROUND].command_line);
+                        printf("[execute_line()→ PID padre: %d (%s)]",
+                               minishell.pid, minishell.command_line);
+                        printf("\n[execute_line()→ PID hijo: %d (%s)]\n", pid,
+                               jobs_list[FOREGROUND].command_line);
 
                         // Waits until all son are finished.
                         while (jobs_list[FOREGROUND].pid)
@@ -546,7 +548,7 @@ int internal_export(char **args)
             // Prints values introduced and the current one (temporal).
             printf("[internal_export()→ nombre: %s]\n", args[1]);
             printf("[internal_export()→ valor: %s]\n", token);
-            printf("[internal_export()→ antiguo valor: %s]\n", getenv(args[1]));
+            printf("[internal_export()→ valor antiguo: %s]\n", getenv(args[1]));
 
             // Changes the values of the env variable.
             setenv(args[1], token, 1);
@@ -764,10 +766,22 @@ void reaper(int signum)
         // If is a foreground process.
         if (pid == jobs_list[FOREGROUND].pid)
         {
-            printf("[reaper()→ Proceso hijo %d en foreground (%s) finalizado"
-                   " con exit code %d]\n",
-                   pid, jobs_list[FOREGROUND].command_line, WEXITSTATUS(status));
 
+            if (WIFEXITED(status))
+            {
+                printf("[reaper()→ Proceso hijo %d en foreground (%s) "
+                       "finalizado con exit code %d]\n",
+                       pid, jobs_list[FOREGROUND].command_line,
+                       WEXITSTATUS(status));
+            }
+            // If was finished with a signal.
+            else if (WIFSIGNALED(status))
+            {
+                printf("[reaper()→ Proceso hijo %d en foreground (%s) "
+                       "finalizado por la señal %d]\n",
+                       pid, jobs_list[FOREGROUND].command_line,
+                       WTERMSIG(status));
+            }
             // Sets the job_list[foreground] as it was before.
             jobs_list[FOREGROUND].pid = foreground.pid;
             jobs_list[FOREGROUND].status = foreground.status;
@@ -780,15 +794,15 @@ void reaper(int signum)
             // If was finished with exit.
             if (WIFEXITED(status))
             {
-                printf("\n[reaper()→ Proceso hijo %d en background (%s) finalizado"
-                       " con exit code %d]\n",
+                printf("\n[reaper()→ Proceso hijo %d en background (%s) "
+                       "finalizado con exit code %d]\n",
                        pid, jobs_list[pos].command_line, WEXITSTATUS(status));
             }
             // If was finished with a signal.
             else if (WIFSIGNALED(status))
             {
-                printf("[reaper()→ Proceso hijo %d en background (%s) finalizado"
-                       " por la señal %d]\n",
+                printf("[reaper()→ Proceso hijo %d en background (%s) "
+                       "finalizado por la señal %d]\n",
                        pid, jobs_list[pos].command_line, WTERMSIG(status));
             }
 
@@ -828,8 +842,9 @@ void ctrlc(int signum)
             kill(jobs_list[FOREGROUND].pid, SIGTERM);
 
             printf("[ctrlc() → Señal 15 enviada a %d (%s) por %d (%s)]\n",
-                   jobs_list[FOREGROUND].pid, jobs_list[FOREGROUND].command_line,
-                   getpid(), minishell.command_line);
+                   jobs_list[FOREGROUND].pid,
+                   jobs_list[FOREGROUND].command_line, getpid(),
+                   minishell.command_line);
         }
         else
         {
@@ -880,18 +895,21 @@ void ctrlz(int signum)
 
             // Updates the process stopped and adds it to the jobs queue.
             jobs_list[FOREGROUND].status = STOPPED;
-            jobs_list_add(jobs_list[FOREGROUND].pid, jobs_list[FOREGROUND].status,
+            jobs_list_add(jobs_list[FOREGROUND].pid,
+                          jobs_list[FOREGROUND].status,
                           jobs_list[FOREGROUND].command_line);
+
+            printf("[ctrlz()→ Señal %d (SIGTSTP) enviada a %d (%s) por %d (%s)"
+                   "]\n",
+                   signum,
+                   jobs_list[FOREGROUND].pid,
+                   jobs_list[FOREGROUND].command_line,
+                   getpid(), minishell.command_line);
 
             // Updates the foreground with the default foreground properties.
             jobs_list[FOREGROUND].pid = foreground.pid;
             jobs_list[FOREGROUND].status = foreground.status;
             strcpy(jobs_list[FOREGROUND].command_line, foreground.command_line);
-
-            printf("[ctrlz()→ Señal %d (SIGTSTP) enviada a %d (%s) por %d (%s)]\n", signum,
-                   jobs_list[FOREGROUND].pid,
-                   jobs_list[FOREGROUND].command_line,
-                   getpid(), minishell.command_line);
         }
         else
         {
@@ -924,7 +942,8 @@ int internal_fg(char **args)
             }
             jobs_list[FOREGROUND].pid = jobs_list[job].pid;
             jobs_list[FOREGROUND].status = jobs_list[job].status;
-            strcpy(jobs_list[FOREGROUND].command_line, jobs_list[job].command_line);
+            strcpy(jobs_list[FOREGROUND].command_line,
+                   jobs_list[job].command_line);
             jobs_list_remove(job);
             char *pos = strchr(jobs_list[FOREGROUND].command_line, '&');
             if (pos)
@@ -958,7 +977,9 @@ int internal_bg(char **args)
                 strcat(jobs_list[job].command_line, " &\0");
                 jobs_list[job].status = EXECUTED;
                 kill(jobs_list[job].pid, SIGCONT);
-                fprintf(stderr,"[internal_bg→ señal %d enviada a %d (%s)]\n", SIGCONT, jobs_list[job].pid, jobs_list[job].command_line);
+                fprintf(stderr, "[internal_bg→ señal %d enviada a %d (%s)]\n",
+                        SIGCONT, jobs_list[job].pid,
+                        jobs_list[job].command_line);
                 return EXIT_SUCCESS;
             }
             fprintf(stderr, "El trabajo %d ya se esta en 2º plano.\n", job);
