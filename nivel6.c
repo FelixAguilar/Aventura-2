@@ -30,6 +30,7 @@
 #include <sys/wait.h>
 #include <signal.h>
 #include <fcntl.h>
+#include <sys/stat.h>
 
 /* 
 * Structure for the storage of a process:
@@ -64,6 +65,7 @@ void ctrlc(int signum);
 void ctrlz(int signum);
 int internal_fg(char **args);
 int internal_bg(char **args);
+int is_output_redirection(char **args);
 
 // Allocates memory for the job list.
 static struct info_process jobs_list[N_JOBS];
@@ -271,6 +273,9 @@ int execute_line(char *line)
 
                     // Sets ignore for SIGINT.
                     signal(SIGINT, SIG_IGN);
+
+                    // Checks if the command is a redirection to a file
+                    is_output_redirection(args);
 
                     // Executes the command introduced using args.
                     if (execvp(args[0], args))
@@ -996,19 +1001,23 @@ int internal_bg(char **args)
 int is_output_redirection(char **args){
     int index = 0;
     int fd;
-    while(args[index] != NULL && strchr(args[index],'>')){
+    while(args[index] != NULL && !strchr(args[index],'>')){
+         index++;
+    }
+    if(!strcmp(args[index],'>')){
         if(args[index + 1] != NULL){
             args[index] = NULL;
             fd = open (args[index + 1],  O_WRONLY|O_CREAT|O_TRUNC, S_IRUSR|S_IWUSR);
             dup2(fd, 1);
             close (fd);
-            index++;
             return EXIT_SUCCESS;
         }else{
-            fprintf(stderr,"El comando no es una"
-            "redirección a fichero o la sintaxis no es correcta");
+            fprintf(stderr, "Error: la sintaxis no es correcta.");
+        }
+    }else{
             return EXIT_FAILURE;
     }
-     }
 }
+
+
 
