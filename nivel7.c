@@ -9,7 +9,7 @@
 */
 
 // Comment this to not use library readline.
-//#define USE_READLINE
+#define USE_READLINE
 
 // Constants:
 #define _POSIX_C_SOURCE 200112L
@@ -165,6 +165,11 @@ char *read_line(char *line)
         strcat(prompt, PROMPT);
         // Reads input introduced in stdin by the user....
         char *ptr = readline(prompt);
+        if (ptr && *ptr)
+        {
+            add_history(ptr);
+        }
+        
         strcpy(line,ptr);
         #else
         // Prints the prompt and the separator.
