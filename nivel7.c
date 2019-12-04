@@ -8,8 +8,10 @@
 * Date: 
 */
 
+// Comment this to not use library readline.
+//#define USE_READLINE
+
 // Constants:
-#define USE_READLINE
 #define _POSIX_C_SOURCE 200112L
 #define COMMAND_LINE_SIZE 1024
 #define ARGS_SIZE 64
@@ -33,6 +35,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
+// libreries for readline
 #ifdef USE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -157,17 +160,22 @@ char *read_line(char *line)
         // Gets the current work directory.
         getcwd(prompt, COMMAND_LINE_SIZE);
 
+        #ifdef  USE_READLINE
+        
+        strcat(prompt, PROMPT);
+        // Reads input introduced in stdin by the user....
+        char *ptr = readline(prompt);
+        strcpy(line,ptr);
+        #else
         // Prints the prompt and the separator.
         printf("%s %s ", prompt, PROMPT);
-
-        #ifdef USE_READLINE
-            line = readline(prompt);
-        #else
         // Reads input introduced in stdin by the user.
         char *ptr = fgets(line, COMMAND_LINE_SIZE, stdin);
+        char *n = strchr(line, '\n');
+        n = '\0';
         #endif
         // If the ptr is null, then process if it is an Ctrl+Letter.
-        if (!line)
+        if (!ptr)
         {
             printf("\r");
 
@@ -179,10 +187,10 @@ char *read_line(char *line)
             else
             {
                 // To not allow that ctrl+C exits from the shell.
-                //ptr = line;
+                ptr = line;
 
                 // This is to avoid the error "command not found".
-                //ptr[0] = 0;
+                ptr[0] = 0;
             }
         }
         // Frees the memory for prompt and cleans stdin.
@@ -331,9 +339,6 @@ int parse_args(char **args, char *line)
     // Count for the tokens and pointer to for each token.
     int ntoken = 0;
     char *token;
-
-    // Checks and cleans the character "\n" at the end of the string line.
-    line = strtok(line, "\n");
 
     // Checks if line is empty or not.
     if (line)
@@ -707,7 +712,8 @@ int internal_bg(char **args)
                 jobs_list[job].status = EXECUTED;
 
                 // Sends the signal to continue the job.
-                kill(jobs_list[job].pid, SIGCONT);;
+                kill(jobs_list[job].pid, SIGCONT);
+                ;
                 return EXIT_SUCCESS;
             }
             fprintf(stderr, "El trabajo %d ya se esta en 2º plano.\n", job);
