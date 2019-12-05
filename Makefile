@@ -13,14 +13,14 @@ all: $(OBJS) $(PROGRAMS)
 #$(PROGRAMS): $(LIBRARIES) $(INCLUDES)
 #   $(CC) $(LDFLAGS) $(LIBRARIES) $@.o -o $@
 
-my_shell: my_shell.o $(CC) $@.o -o 
-	$@ $(LDFLAGS) $(LIBRARIES)
+my_shell: my_shell.o 
+	$(CC) $@.o -o $@ $(LDFLAGS) $(LIBRARIES)
 
-nivel7: nivel7.o $(CC) $@.o -o 
-	$@ $(LDFLAGS) $(LIBRARIES)
+nivel7: nivel7.o
+	$(CC) $@.o -o $@ $(LDFLAGS) $(LIBRARIES)
 
-%.o: %.c $(INCLUDES) $(CC) $(CFLAGS) -o 
-	$@ -c $<
+%.o: %.c $(INCLUDES)
+	$(CC) $(CFLAGS) -o $@ -c $<
 
 .PHONY: clean
 clean:
