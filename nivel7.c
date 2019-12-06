@@ -6,7 +6,7 @@
 *          Bennasar Polzin, Adrian
 *          Lopez Bueno, Alvaro
 *
-* Date: 11/12/2019
+* Date: 15/12/2019
 */
 
 // Comment this to not use library readline.
@@ -23,7 +23,7 @@
 #define STOPPED 'D'
 #define FINALIZED 'F'
 
-// Libreries:
+// Libraries:
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -36,7 +36,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-// libreries for readline
+// Libraries for readline:
 #ifdef USE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -67,9 +67,9 @@ void ctrlz(int signum);
 /* 
 * Structure for the storage of a job:
 * -----------------------------------
-*  pid: Number that indentifies a job.
-*  status: It can be Executed, Stopped, Finalized.
-*  command_line: Command name and his arguments.
+*  pid: number that indentifies a job.
+*  status: it can be Executed, Stopped, Finalized.
+*  command_line: command name and his arguments.
 */
 struct info_process
 {
@@ -87,27 +87,28 @@ static struct info_process minishell;
 // Allocates memory for the default foreground.
 static struct info_process foreground;
 
-// Allocates memory for the active jobs in the minishell, (at least 1).
+// Allocates memory for the number of active jobs in the minishell.
 static int active_jobs = 1;
 
 /*
 * Function: Main:
 * ---------------
-* Here starts the execution of the minishell.
+* Primary function of the minishell, here starts the minishell execution.
 *
 *  argc: number of arguments introduced.
-*  argv: char array of the arguments, in 0 is the name of the executed file.
+*  argv: char array of the arguments, the name of the executed file is stored 
+*        in position 0.
 *
 *  returns: exit_success if it was executed correctly.
 */
 int main(int argc, char **argv)
 {
-    // Sets all values for the minishell process.
+    // Sets the necessary values to recognize the minishell.
     minishell.pid = getpid();
     minishell.status = EXECUTED;
     strcpy(minishell.command_line, argv[0]);
 
-    // Sets all values for the default foreground.
+    // Sets the foreground default values (no active job).
     foreground.pid = FOREGROUND;
     foreground.status = EXECUTED;
     foreground.command_line[0] = '\0';
@@ -121,7 +122,7 @@ int main(int argc, char **argv)
     // Sets action (ctrlz) for signal SIGTSTP.
     signal(SIGTSTP, ctrlz);
 
-    //Inicialize the fields for foreground process in the job list.
+    //Initialize the foreground when there is no active job.
     jobs_list[FOREGROUND].pid = foreground.pid;
     jobs_list[FOREGROUND].status = foreground.status;
     strcpy(jobs_list[FOREGROUND].command_line, foreground.command_line);
@@ -132,12 +133,12 @@ int main(int argc, char **argv)
     // Checks if malloc was done correctly.
     if (line)
     {
-        // Read line and execute it.
+        // Read and execute the line.
         while (read_line(line))
         {
             execute_line(line);
         }
-        // Liberates memory and returns exit success.
+        // Liberates memory used by the line.
         free(line);
         return EXIT_SUCCESS;
     }
@@ -147,7 +148,7 @@ int main(int argc, char **argv)
 /*
 * Function: print_prompt:
 * -----------------------
-* This function prints the prompt.
+* This function is used to print the prompt.
 *
 *  returns: exit success or exit failure.
 */
@@ -169,7 +170,7 @@ int print_prompt(){
 * --------------------
 * Prints the prompt and reads the input introduced in stdin by the user.
 *
-*  line: pointer where will be stored the input introduced by stdin.
+*  line: pointer where the input introduced by stdin will be stored.
 *
 *  returns: pointer to input introduced.
 */
@@ -182,47 +183,43 @@ char *read_line(char *line)
         // Gets the current work directory.
         getcwd(prompt, COMMAND_LINE_SIZE);
 
-        #ifdef  USE_READLINE
-        
+#ifdef  USE_READLINE
         // Prints the prompt and reads the input from the user.
         strcat(prompt, PROMPT);
         char *ptr = readline(prompt);
 
-        // If the input is not empty save it in to history.
-        if (ptr && *ptr)
-        {
-            add_history(ptr);
-        }
-
-        // If the input from the user is ctrl+D then exit from the minishell.
+        // If the input from the user is ctrl+D then exit the minishell.
         if(!ptr){
             printf("\r");
             exit(0);
         }
-
+        // If the input is not empty save it into history.
+        if (ptr && *ptr)
+        {
+            add_history(ptr);
+        }
         // Copies input to line.
         strcpy(line,ptr);
-
-        #else
-
+#else
         // Prints the prompt and the separator.
         printf("%s%s", prompt, PROMPT);
 
         // Reads input introduced in stdin by the user.
         char *ptr = fgets(line, COMMAND_LINE_SIZE, stdin);
 
-        // Search and clears the character '\n'.
+        // Searches and clears the character '\n'.
         if(strchr(line, '\n'))
         {
         char *n = strchr(line, '\n');
         *(n) = '\0';
         }
-        // If the ptr is null, then process if it is an Ctrl+Letter.
+        // If the ptr is null it means that the command is Ctrl+Letter.
         if (!ptr)
         {
+            // Places the console cursor at start of line.
             printf("\r");
 
-            // If stdin is end of file then exits from the file.
+            // Exits the minishell when reaching end of file in stdin.
             if (feof(stdin))
             {
                 exit(0);
@@ -232,13 +229,11 @@ char *read_line(char *line)
                 // To not allow that ctrl+C exits from the shell.
                 ptr = line;
 
-                // This is to avoid the error "command not found".
+                // This is to avoid the "command not found" error.
                 ptr[0] = 0;
             }
         }
-
-        #endif
-
+#endif
         // Frees the memory for prompt and cleans stdin.
         free(prompt);
         fflush(stdin);
@@ -255,27 +250,27 @@ char *read_line(char *line)
 * Runs the different functions that will prepare and execute the command line
 * introduced by the user.
 *
-*  line: pointer where is stored the input introduced by stdin.
+*  line: pointer where the input introduced by stdin is stored.
 *
 *  returns: exit_failure if it has failed or exit_success if it was executed
 *           correctly.
 */
 int execute_line(char *line)
 {
-    // Allocates memory for the pointers of arguments.
+    // Allocates memory for the array of pointers to arguments.
     char **args = malloc(sizeof(char *) * ARGS_SIZE);
 
     // Checks if it has been allocated correctly.
     if (args)
     {
-        // Obtains the arguments and if there is no arguments then skip.
+        // Obtains the arguments and if there are no arguments then skip.
         if (parse_args(args, line))
         {
             // Allocates memory for the char array command and checks it.
             char *command = malloc(sizeof(char) * COMMAND_LINE_SIZE);
             if (command)
             {
-                // Groups the line again with all tokens.
+                // Groups the line with all tokens.
                 int i = 0;
                 strcat(command, args[i]);
                 i++;
@@ -286,16 +281,16 @@ int execute_line(char *line)
                     i++;
                 }
 
-                // Checks if it is an internal command if not continue.
+                // Checks if it is an internal command, if not continue.
                 if (check_internal(args))
                 {
                     // Checks if it is a background command.
                     int bkg = is_background(args);
 
-                    // Creates a new thread and obtains his pid.
+                    // Creates a new thread and returns the son's pid.
                     pid_t pid = fork();
 
-                    // If it is the father then execute this.
+                    // If it is the father process then execute this.
                     if (pid > 0)
                     {
                         // If it is a background job then add it to jobs_list.
@@ -310,34 +305,26 @@ int execute_line(char *line)
                             jobs_list[FOREGROUND].status = EXECUTED;
                             strcpy(jobs_list[FOREGROUND].command_line, command);
 
-                            // Waits until all sons are finished.
+                            // Waits until the foreground job is finished.
                             while (jobs_list[FOREGROUND].pid)
                             {
                                 pause();
                             }
-                            // Sets values for the foreground job.
+                            // Resets values for the foreground job.
                             jobs_list[FOREGROUND].pid = foreground.pid;
                             jobs_list[FOREGROUND].status = foreground.status;
                             strcpy(jobs_list[FOREGROUND].command_line, command);
                         }
                     }
-                    // If it is the son then execute this.
+                    // If it is the son process then execute this.
                     else if (pid == 0)
                     {
-                        // If it is a background job, ignore SIGTSTP.
-                        if (bkg)
-                        {
-                            signal(SIGTSTP, SIG_IGN);
-                        }
-                        else
-                        {
-                            signal(SIGTSTP, SIG_DFL);
-                        }
+                        // Sets ignore for SIGTSTP and SIGINT.
+                        signal(SIGTSTP, SIG_IGN); 
+                        signal(SIGINT, SIG_IGN);  
+
                         // Sets standard action for SIGCHILD.
                         signal(SIGCHLD, SIG_DFL);
-
-                        // Sets ignore for SIGINT.
-                        signal(SIGINT, SIG_IGN);
 
                         // Looks for redirection in the command line.
                         is_output_redirection(args);
@@ -350,12 +337,12 @@ int execute_line(char *line)
                                 args[0]);
                             exit(EXIT_FAILURE);
                         }
-                        // Once it has been executed the command then exit.
+                        // Exits once the command has been executed.
                         exit(EXIT_SUCCESS);
                     }
                     else
                     {
-                        // If an error happens, show it and exit.
+                        // Exits if an error happens when creating the son.
                         perror("fork");
                         exit(EXIT_FAILURE);
                     }
@@ -621,33 +608,39 @@ int internal_export(char **args)
 int internal_source(char **args)
 {
     // Allocates memory for the line.
-    char *line = (char *)malloc(sizeof(char) * COMMAND_LINE_SIZE);
-    if (line)
+    char *text = (char *)malloc(sizeof(char) * COMMAND_LINE_SIZE);
+    if (text)
     {
         // Open a file in reading mode.
         FILE *fp = fopen(args[1], "r");
         if (fp)
         {
-            // Obtain the lines one by one until it reaches the end of file.
-            while (fgets(line, COMMAND_LINE_SIZE, fp))
+            // Obtain the lines one by one until reaches the end of file.
+            while (fgets(text, COMMAND_LINE_SIZE, fp))
             {
-                execute_line(line);
-
-                // Cleans the buffer after each execution .
+                // Cleans the buffer after each reading iteration.
                 fflush(fp);
+
+                // Search and clears the character '\n'.
+                if(strchr(text, '\n'))
+                {
+                    char *n = strchr(text, '\n');
+                    *(n) = '\0';
+                }
+                execute_line(text);
             }
-            // Closes the file and frees the used memory by line.
+            // Closes the file and frees the memory ocupied by line.
             fclose(fp);
-            free(line);
+            free(text);
             return EXIT_SUCCESS;
         }
         else
         {
-            // If there was a problem it notifies it.
+            // If there was a problem we notify it.
             fprintf(stderr, "El archivo no existe o no se puede abrir.\n");
 
-            // Frees the allocated memory if an error occurrs aswell.
-            free(line);
+            // Frees the allocated memory if an error occured aswell.
+            free(text);
         }
     }
     return EXIT_FAILURE;
@@ -1026,7 +1019,7 @@ void ctrlz(int signum)
         if (strcmp(jobs_list[FOREGROUND].command_line, minishell.command_line))
         {
             // Sends the signal to stop to the foreground job.
-            kill(jobs_list[FOREGROUND].pid, SIGTSTP);
+            kill(jobs_list[FOREGROUND].pid, SIGSTOP);
 
             // Updates the stopped job and adds it to the jobs queue.
             jobs_list[FOREGROUND].status = STOPPED;
