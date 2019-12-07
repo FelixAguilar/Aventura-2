@@ -10,7 +10,7 @@
 */
 
 // Comment this to not use library readline.
-//#define USE_READLINE
+// #define USE_READLINE
 
 // Constants:
 #define _POSIX_C_SOURCE 200112L
@@ -271,6 +271,7 @@ int execute_line(char *line)
             if (command)
             {
                 // Groups the line with all tokens.
+                command[0] = '\0';
                 int i = 0;
                 strcat(command, args[i]);
                 i++;
@@ -974,20 +975,26 @@ void reaper(int signum)
 */
 void ctrlc(int signum)
 {
-    // Prints line break and if READLINE is used then prints the prompt aswell.
-    printf("\n");
-#ifdef USE_READLINE
-    print_prompt();
-#endif
     // Check if there is a job in foreground.
     if (jobs_list[FOREGROUND].pid > foreground.pid)
     {
         // Checks if it is not the minishell.
         if (strcmp(jobs_list[FOREGROUND].command_line, minishell.command_line))
         {
+            // Prints line break.
+            printf("\n");
             // If it is not the minishell then send SIGTERM to the job.
             kill(jobs_list[FOREGROUND].pid, SIGTERM);
         }
+    }
+    else
+    {
+        // Prints line break.
+        printf("\n");
+#ifdef USE_READLINE
+        // if READLINE is used then prints the prompt.  
+        print_prompt();
+#endif
     }
     // Sets SIGINT to the function ctrlc.
     signal(SIGINT, ctrlc);
@@ -1005,17 +1012,16 @@ void ctrlc(int signum)
 */
 void ctrlz(int signum)
 {
-    // Prints line break and if READLINE is used then prints the prompt aswell.
-    printf("\n");
-#ifdef USE_READLINE
-    print_prompt();
-#endif
+    
     // Check if there is a foreground job.
     if (jobs_list[FOREGROUND].pid != foreground.pid)
     {
         // Checks if the foreground is not the minishell.
         if (strcmp(jobs_list[FOREGROUND].command_line, minishell.command_line))
         {
+            // Prints line break.
+            printf("\n");
+
             // Sends the signal to stop to the foreground job.
             kill(jobs_list[FOREGROUND].pid, SIGSTOP);
 
@@ -1030,6 +1036,15 @@ void ctrlz(int signum)
             jobs_list[FOREGROUND].status = foreground.status;
             strcpy(jobs_list[FOREGROUND].command_line, foreground.command_line);
         }
+    }
+    else
+    {
+        // Prints line break.
+        printf("\n");
+#ifdef USE_READLINE
+        // if READLINE is used then prints the prompt.  
+        print_prompt();
+#endif
     }
     // Sets SIGSTP to the function ctrlz.
     signal(SIGTSTP, ctrlz);
