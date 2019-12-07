@@ -6,7 +6,7 @@
 *          Bennasar Polzin, Adrian
 *          Lopez Bueno, Alvaro
 *
-* Date: 11/12/2019
+* Date: 15/12/2019
 */
 
 // Comment this to not use library readline.
@@ -23,7 +23,7 @@
 #define STOPPED 'D'
 #define FINALIZED 'F'
 
-// Libreries:
+// Libraries:
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -36,7 +36,7 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 
-// libreries for readline
+// Libraries for readline:
 #ifdef USE_READLINE
 #include <readline/readline.h>
 #include <readline/history.h>
@@ -67,9 +67,9 @@ void ctrlz(int signum);
 /* 
 * Structure for the storage of a job:
 * -----------------------------------
-*  pid: Number that indentifies a job.
-*  status: It can be Executed, Stopped, Finalized.
-*  command_line: Command name and his arguments.
+*  pid: number that indentifies a job.
+*  status: it can be Executed, Stopped, Finalized.
+*  command_line: command name and his arguments.
 */
 struct info_process
 {
@@ -87,27 +87,28 @@ static struct info_process minishell;
 // Allocates memory for the default foreground.
 static struct info_process foreground;
 
-// Allocates memory for the active jobs in the minishell, (at least 1).
+// Allocates memory for the number of active jobs in the minishell.
 static int active_jobs = 1;
 
 /*
 * Function: Main:
 * ---------------
-* Here starts the execution of the minishell.
+* Primary function of the minishell, here starts the minishell execution.
 *
 *  argc: number of arguments introduced.
-*  argv: char array of the arguments, in 0 is the name of the executed file.
+*  argv: char array of the arguments, the name of the executed file is stored 
+*        in position 0.
 *
 *  returns: exit_success if it was executed correctly.
 */
 int main(int argc, char **argv)
 {
-    // Sets all values for the minishell process.
+    // Sets the necessary values to recognize the minishell.
     minishell.pid = getpid();
     minishell.status = EXECUTED;
     strcpy(minishell.command_line, argv[0]);
 
-    // Sets all values for the default foreground.
+    // Sets the foreground default values (no active job).
     foreground.pid = FOREGROUND;
     foreground.status = EXECUTED;
     foreground.command_line[0] = '\0';
@@ -121,7 +122,7 @@ int main(int argc, char **argv)
     // Sets action (ctrlz) for signal SIGTSTP.
     signal(SIGTSTP, ctrlz);
 
-    //Inicialize the fields for foreground process in the job list.
+    //Initialize the foreground when there is no active job.
     jobs_list[FOREGROUND].pid = foreground.pid;
     jobs_list[FOREGROUND].status = foreground.status;
     strcpy(jobs_list[FOREGROUND].command_line, foreground.command_line);
@@ -132,12 +133,12 @@ int main(int argc, char **argv)
     // Checks if malloc was done correctly.
     if (line)
     {
-        // Read line and execute it.
+        // Read and execute the line.
         while (read_line(line))
         {
             execute_line(line);
         }
-        // Liberates memory and returns exit success.
+        // Liberates memory used by the line.
         free(line);
         return EXIT_SUCCESS;
     }
@@ -147,7 +148,7 @@ int main(int argc, char **argv)
 /*
 * Function: print_prompt:
 * -----------------------
-* This function prints the prompt.
+* This function is used to print the prompt.
 *
 *  returns: exit success or exit failure.
 */
@@ -169,7 +170,7 @@ int print_prompt(){
 * --------------------
 * Prints the prompt and reads the input introduced in stdin by the user.
 *
-*  line: pointer where will be stored the input introduced by stdin.
+*  line: pointer where the input introduced by stdin will be stored.
 *
 *  returns: pointer to input introduced.
 */
@@ -182,47 +183,43 @@ char *read_line(char *line)
         // Gets the current work directory.
         getcwd(prompt, COMMAND_LINE_SIZE);
 
-        #ifdef  USE_READLINE
-        
+#ifdef  USE_READLINE
         // Prints the prompt and reads the input from the user.
         strcat(prompt, PROMPT);
         char *ptr = readline(prompt);
 
-        // If the input is not empty save it in to history.
-        if (ptr && *ptr)
-        {
-            add_history(ptr);
-        }
-
-        // If the input from the user is ctrl+D then exit from the minishell.
+        // If the input from the user is ctrl+D then exit the minishell.
         if(!ptr){
             printf("\r");
             exit(0);
         }
-
+        // If the input is not empty save it into history.
+        if (ptr && *ptr)
+        {
+            add_history(ptr);
+        }
         // Copies input to line.
         strcpy(line,ptr);
-
-        #else
-
+#else
         // Prints the prompt and the separator.
         printf("%s%s", prompt, PROMPT);
 
         // Reads input introduced in stdin by the user.
         char *ptr = fgets(line, COMMAND_LINE_SIZE, stdin);
 
-        // Search and clears the character '\n'.
+        // Searches and clears the character '\n'.
         if(strchr(line, '\n'))
         {
         char *n = strchr(line, '\n');
         *(n) = '\0';
         }
-        // If the ptr is null, then process if it is an Ctrl+Letter.
+        // If the ptr is null it means that the command is Ctrl+Letter.
         if (!ptr)
         {
+            // Places the console cursor at start of line.
             printf("\r");
 
-            // If stdin is end of file then exits from the file.
+            // Exits the minishell when reaching end of file in stdin.
             if (feof(stdin))
             {
                 exit(0);
@@ -232,13 +229,11 @@ char *read_line(char *line)
                 // To not allow that ctrl+C exits from the shell.
                 ptr = line;
 
-                // This is to avoid the error "command not found".
+                // This is to avoid the "command not found" error.
                 ptr[0] = 0;
             }
         }
-
-        #endif
-
+#endif
         // Frees the memory for prompt and cleans stdin.
         free(prompt);
         fflush(stdin);
@@ -255,27 +250,28 @@ char *read_line(char *line)
 * Runs the different functions that will prepare and execute the command line
 * introduced by the user.
 *
-*  line: pointer where is stored the input introduced by stdin.
+*  line: pointer where the input introduced by stdin is stored.
 *
 *  returns: exit_failure if it has failed or exit_success if it was executed
 *           correctly.
 */
 int execute_line(char *line)
 {
-    // Allocates memory for the pointers of arguments.
+    // Allocates memory for the array of pointers to arguments.
     char **args = malloc(sizeof(char *) * ARGS_SIZE);
 
     // Checks if it has been allocated correctly.
     if (args)
     {
-        // Obtains the arguments and if there is no arguments then skip.
+        // Obtains the arguments and if there are no arguments then skip.
         if (parse_args(args, line))
         {
             // Allocates memory for the char array command and checks it.
             char *command = malloc(sizeof(char) * COMMAND_LINE_SIZE);
             if (command)
             {
-                // Groups the line again with all tokens.
+                // Groups the line with all tokens.
+                command[0] = '\0';
                 int i = 0;
                 strcat(command, args[i]);
                 i++;
@@ -286,16 +282,16 @@ int execute_line(char *line)
                     i++;
                 }
 
-                // Checks if it is an internal command if not continue.
+                // Checks if it is an internal command, if not continue.
                 if (check_internal(args))
                 {
                     // Checks if it is a background command.
                     int bkg = is_background(args);
 
-                    // Creates a new thread and obtains his pid.
+                    // Creates a new thread and returns the son's pid.
                     pid_t pid = fork();
 
-                    // If it is the father then execute this.
+                    // If it is the father process then execute this.
                     if (pid > 0)
                     {
                         // If it is a background job then add it to jobs_list.
@@ -310,34 +306,26 @@ int execute_line(char *line)
                             jobs_list[FOREGROUND].status = EXECUTED;
                             strcpy(jobs_list[FOREGROUND].command_line, command);
 
-                            // Waits until all sons are finished.
+                            // Waits until the foreground job is finished.
                             while (jobs_list[FOREGROUND].pid)
                             {
                                 pause();
                             }
-                            // Sets values for the foreground job.
+                            // Resets values for the foreground job.
                             jobs_list[FOREGROUND].pid = foreground.pid;
                             jobs_list[FOREGROUND].status = foreground.status;
                             strcpy(jobs_list[FOREGROUND].command_line, command);
                         }
                     }
-                    // If it is the son then execute this.
+                    // If it is the son process then execute this.
                     else if (pid == 0)
                     {
-                        // If it is a background job, ignore SIGTSTP.
-                        if (bkg)
-                        {
-                            signal(SIGTSTP, SIG_IGN);
-                        }
-                        else
-                        {
-                            signal(SIGTSTP, SIG_DFL);
-                        }
+                        // Sets ignore for SIGTSTP and SIGINT.
+                        signal(SIGTSTP, SIG_IGN); 
+                        signal(SIGINT, SIG_IGN);  
+
                         // Sets standard action for SIGCHILD.
                         signal(SIGCHLD, SIG_DFL);
-
-                        // Sets ignore for SIGINT.
-                        signal(SIGINT, SIG_IGN);
 
                         // Looks for redirection in the command line.
                         is_output_redirection(args);
@@ -350,12 +338,12 @@ int execute_line(char *line)
                                 args[0]);
                             exit(EXIT_FAILURE);
                         }
-                        // Once it has been executed the command then exit.
+                        // Exits once the command has been executed.
                         exit(EXIT_SUCCESS);
                     }
                     else
                     {
-                        // If an error happens, show it and exit.
+                        // Exits if an error happens when creating the son.
                         perror("fork");
                         exit(EXIT_FAILURE);
                     }
@@ -373,10 +361,10 @@ int execute_line(char *line)
 /*
 * Function: parse_args:
 * ---------------------
-* Divides the input line into differents segments into tokens that are divided
-* by blank spaces " " and elimintates the comments that are after "#".
+* Divides the input line into tokens that are divided by blank spaces " " and 
+* elimintates the content after "#" (they are comments).
 *
-*  args: pointer to the pointers for all tokens obtained from the line.
+*  args: pointer array that storages all the tokens in a command line.
 *  line: pointer where the input introduced by stdin will be stored.
 *
 *  returns: the number of tokens obtained from line.
@@ -429,9 +417,9 @@ int parse_args(char **args, char *line)
 * Checks whether the command is internal or not. If it is internal, executes 
 * the command and returns exit success. Otherwise, returns exit failure.
 *  
-*  args: pointer to the pointers for all tokens obteined from the line.
+*  args: pointer array that storages all the tokens in a command line.
 *
-*  returns: exit success or exit failure.
+*  returns: exit success if it is an internal command, otherwise exit failure.
 */
 int check_internal(char **args)
 {
@@ -448,22 +436,18 @@ int check_internal(char **args)
     if (!strcmp(args[0], cd))
     {
         internal_cd(args);
-        return EXIT_SUCCESS;
     }
     else if (!strcmp(args[0], export))
     {
         internal_export(args);
-        return EXIT_SUCCESS;
     }
     else if (!strcmp(args[0], source))
     {
         internal_source(args);
-        return EXIT_SUCCESS;
     }
     else if (!strcmp(args[0], jobs))
     {
         internal_jobs(args);
-        return EXIT_SUCCESS;
     }
     else if (!strcmp(args[0], ex))
     {
@@ -472,15 +456,16 @@ int check_internal(char **args)
     else if (!strcmp(args[0], fg))
     {
         internal_fg(args);
-        return EXIT_SUCCESS;
     }
     else if (!strcmp(args[0], bg))
     {
         internal_bg(args);
-        return EXIT_SUCCESS;
     }
-    // Returns if it was an internal command.
-    return EXIT_FAILURE;
+    else
+    {
+        return EXIT_FAILURE;
+    }
+    return EXIT_SUCCESS;
 }
 
 /*
@@ -490,9 +475,9 @@ int check_internal(char **args)
 * are no arguments introduced it will go to the user home. Also it will accept 
 * directories with blank spaces thanks to the auxiliary function.
 *
-*  args: pointer to the pointers for all tokens obtained from the line.
+*  args: pointer array that storages all the tokens in a command line.
 *
-*  returns: exit success.
+*  returns: exit success or exit failure if an error happened.
 */
 int internal_cd(char **args)
 {
@@ -505,13 +490,14 @@ int internal_cd(char **args)
         // Copies the first argument to the path.
         strcpy(path, args[1]);
 
-        // Creates the path including the characters c adding blanks.
+        // Creates the path adding blanks.
         for (int i = 2; i < ARGS_SIZE && args[i] != NULL; i++)
         {
             strcat(path, " ");
             strcat(path, args[i]);
         }
-        // Checks if there are blanks and adds them again.
+        /* Checks if there are directories or files with blanks in their name
+           and removes the special character defining the blank spaces. */
         aux_internal_cd(path, '\"');
         aux_internal_cd(path, '\'');
         aux_internal_cd(path, '\\');
@@ -521,8 +507,9 @@ int internal_cd(char **args)
         {
             // Prints the error in stderr.
             perror("chdir");
+            return EXIT_FAILURE;
         }
-        // Liberates memory for the path.
+        // Liberates memory used by the path.
         free(path);
     }
     else
@@ -532,6 +519,7 @@ int internal_cd(char **args)
         {
             // Prints the error in stderr.
             perror("chdir");
+            return EXIT_FAILURE;
         }
     }
     return EXIT_SUCCESS;
@@ -541,11 +529,10 @@ int internal_cd(char **args)
 * Function: aux_internal_cd:
 * --------------------------
 * Checks if there are blank spaces identified with the character c and if so, 
-* it unifies the path and elimintates all characters c from the path adding 
-* blank spaces between diferent tokens.
+* it unifies the path and elimintates all characters c from the path.
 *
 *  path: pointer to the string char used to store the path.
-*  c: char used as identifier as a space or union.
+*  c: char that must be eliminated from the path.
 *
 *  returns: exit success or exit failure.
 */
@@ -554,23 +541,23 @@ int aux_internal_cd(char *path, char c)
     // Checks if there is any character c in the path.
     if (strchr(path, c))
     {
-        // Allocates memory for an auxiliary variable for the path.
+        // Allocates memory for an auxiliar variable for the path.
         char *auxpath = (char *)malloc(sizeof(char) * COMMAND_LINE_SIZE);
 
-        // Gets the first part from the path without the character c.
+        // Gets the first part of the path without the character c.
         char *aux = strtok(path, &c);
 
         // Cleans the auxiliary path.
         strcpy(auxpath, "");
 
-        //While there are characters c in the string path.
+        // While there are characters c in the string path.
         while (aux)
         {
             // Adds aux to the new path and gets the next part of it.
             strcat(auxpath, aux);
             aux = strtok(NULL, &c);
         }
-        // Copies the content of auxpath to the path and eliminates it.
+        // Copies the content of auxpath into the path and eliminates it.
         strcpy(path, auxpath);
         free(auxpath);
         return EXIT_SUCCESS;
@@ -583,9 +570,10 @@ int aux_internal_cd(char *path, char c)
 * --------------------------
 * Changes an env variable indicated in the args with the new value.
 *  
-*  args: pointer to the pointers for all tokens obteined from the line.
+*  args: pointer array that storages all the tokens in a command line.
 *
-*  returns: exit success or exit failure
+*  returns: exit success or exit failure if the input was not introduced 
+*           correctly.
 */
 int internal_export(char **args)
 {
@@ -614,40 +602,46 @@ int internal_export(char **args)
 * Allows the execution of multiple predefined commands contained in a script
 * file. 
 *
-*  args: pointer to the pointers for all tokens obtained from the line.
+*  args: pointer array that storages all the tokens in a command line.
 *
-*  returns: exit success or exit failure
+*  returns: exit success or exit failure if an error with the file happens.
 */
 int internal_source(char **args)
 {
     // Allocates memory for the line.
-    char *line = (char *)malloc(sizeof(char) * COMMAND_LINE_SIZE);
-    if (line)
+    char *text = (char *)malloc(sizeof(char) * COMMAND_LINE_SIZE);
+    if (text)
     {
         // Open a file in reading mode.
         FILE *fp = fopen(args[1], "r");
         if (fp)
         {
-            // Obtain the lines one by one until it reaches the end of file.
-            while (fgets(line, COMMAND_LINE_SIZE, fp))
+            // Obtain the lines one by one until reaches the end of file.
+            while (fgets(text, COMMAND_LINE_SIZE, fp))
             {
-                execute_line(line);
-
-                // Cleans the buffer after each execution .
+                // Cleans the buffer after each reading iteration.
                 fflush(fp);
+
+                // Searches and clears the character '\n'.
+                if(strchr(text, '\n'))
+                {
+                    char *n = strchr(text, '\n');
+                    *(n) = '\0';
+                }
+                execute_line(text);
             }
-            // Closes the file and frees the used memory by line.
+            // Closes the file and frees the memory ocupied by line.
             fclose(fp);
-            free(line);
+            free(text);
             return EXIT_SUCCESS;
         }
         else
         {
-            // If there was a problem it notifies it.
+            // If there was a problem, it is notified.
             fprintf(stderr, "El archivo no existe o no se puede abrir.\n");
 
-            // Frees the allocated memory if an error occurrs aswell.
-            free(line);
+            // Frees the allocated memory if an error occured aswell.
+            free(text);
         }
     }
     return EXIT_FAILURE;
@@ -658,9 +652,9 @@ int internal_source(char **args)
 * ------------------------
 * Prints all active jobs in background with their pid, state, and command line.
 *  
-*  args: pointer to the arguments line.
+*  args: pointer array that storages all the tokens in a command line.
 *  
-*  returns: exit success
+*  returns: exit success.
 */
 int internal_jobs(char **args)
 {
@@ -679,36 +673,37 @@ int internal_jobs(char **args)
 /*
 * Function: internal_fg:
 * ----------------------
-* Moves a job to the foreground and pauses until it ends.
+* The indicated job is brought to foreground sending its signal to continue.
 * 
-*  args: pointer to the arguments form the command.
+*  args: pointer array that storages all the tokens in a command line.
 *
-*  returns: exit success or exit failure.
+*  returns: exit success or exit failure if the job does not exist or the 
+*           introduced command is not correct.
 */
 int internal_fg(char **args)
 {
     // If the command was correctly introduced.
-    if (args[1])
+    if (args[1] && !args[2])
     {
         // Gets the index for the job and checks if it is valid.
         int job = (int)*(args[1]) - 48;
         if (job > 0 && job < active_jobs)
         {
-            // If the job is stopped then sends continue signal to it.
+            // If the job is in stopped state, sends continue signal to it.
             if (jobs_list[job].status == STOPPED)
             {
                 kill(jobs_list[job].pid, SIGCONT);
             }
-            // Updates foreground information with the job.
+            // Updates foreground with the job information.
             jobs_list[FOREGROUND].pid = jobs_list[job].pid;
             jobs_list[FOREGROUND].status = jobs_list[job].status;
             strcpy(jobs_list[FOREGROUND].command_line,
                    jobs_list[job].command_line);
 
-            // Removes the old job from the job_list.
+            // Removes the job from its previous position in jobs_list.
             jobs_list_remove(job);
 
-            // If it contains the char '&' it is removed.
+            // If his command line contains the char '&' it is removed.
             char *pos = strchr(jobs_list[FOREGROUND].command_line, '&');
             if (pos)
             {
@@ -734,16 +729,18 @@ int internal_fg(char **args)
 /*
 * Function: internal_bg:
 * ----------------------
-* Continues any job stopped in background. 
+* The job indicated by parameter is resumed in background by sending continue
+* signal if it was stopped.
 * 
-*  args: pointer to the arguments of the command.
+*  args: pointer array that storages all the tokens in a command line.
 *
-*  returns: exit success or exit failure.
+*  returns: exit success or exit failure if the job is already in background,
+*           the job does not exist or the command was not correctly introduced.
 */
 int internal_bg(char **args)
 {
     // Checks if the command was introduced correctly.
-    if (args[1])
+    if (args[1] && !args[2])
     {
         // Gets the index for the job and checks if it is valid.
         int job = (int)*(args[1]) - 48;
@@ -758,7 +755,6 @@ int internal_bg(char **args)
 
                 // Sends the signal to continue the job.
                 kill(jobs_list[job].pid, SIGCONT);
-                ;
                 return EXIT_SUCCESS;
             }
             fprintf(stderr, "El trabajo %d ya está en 2º plano.\n", job);
@@ -780,11 +776,11 @@ int internal_bg(char **args)
 *  status: the status of the process to add.
 *  command_line: the command_line of the process to add.
 * 
-*  returns: exit success or exit failure.
+*  returns: exit success or exit failure if it was not able to add the job.
 */
 int jobs_list_add(pid_t pid, char status, char *command_line)
 {
-    // If jobs_list is not full then.
+    // If jobs_list is not full.
     if (active_jobs < N_JOBS)
     {
         // Adds the new job.
@@ -806,7 +802,7 @@ int jobs_list_add(pid_t pid, char status, char *command_line)
 /*
 * Function: jobs_list_find:
 * -------------------------
-* Finds and returns the position of the job in the array jobs_list.
+* Finds and returns the position of the job in the jobs_list.
 *
 *  pid: pid from the process to find.
 *
@@ -834,16 +830,16 @@ int jobs_list_find(pid_t pid)
 * ---------------------------
 * Removes a job from the list and adds the last job active in his positon.
 *
-*  position: position of the job to remove.
+*  position: index of the job to be removed.
 *
-*  returns: exit success or exit failure
+*  returns: exit success or exit failure if the index is not valid.
 */
 int jobs_list_remove(int position)
 {
     // Checks for a valid position.
     if (0 < position && position < N_JOBS)
     {
-        // Gets the info of the last active job.
+        // Gets the information of the last active job.
         pid_t pid_last = jobs_list[active_jobs - 1].pid;
         char status_last = jobs_list[active_jobs - 1].status;
         char *command_line_last = jobs_list[active_jobs - 1].command_line;
@@ -859,7 +855,6 @@ int jobs_list_remove(int position)
     }
     else
     {
-        // Prints error.
         fprintf(stderr, "La posición introducida es errónea.\n");
         return EXIT_FAILURE;
     }
@@ -868,11 +863,11 @@ int jobs_list_remove(int position)
 /*
 * Function: is_background:
 * ------------------------
-* Checks if is a background process.
+* Checks if it will be a background process.
 *
-*  args: arguments from the command. 
+*  args: pointer array that storages all the tokens in a command line.
 *
-*  returns: exit success or exit failure.
+*  returns: exit success or exit failure if it will be a background process.
 */
 int is_background(char **args)
 {
@@ -899,13 +894,13 @@ int is_background(char **args)
 * and obtains the file name in the argument after the '>' where the output
 * of the command will be saved. 
 *
-*  args: char pointer of the tokens from de command line.
+*  args: pointer array that storages all the tokens in a command line.
 *
 *  returns: true(0) if there is redirection, false(1) if not.
 */
 int is_output_redirection(char **args)
 {
-    // Traverses the arguments until the token NULL.
+    // Traverses the arguments until the NULL token.
     int ind = 0;
     while (args[ind])
     {
@@ -972,7 +967,7 @@ void reaper(int signum)
 /*
 * Function: ctrlc:
 * ----------------
-* Executed when a Ctrl+C is pressed. 
+* Executed when Ctrl+C is pressed killing the foreground process. 
 *
 *  signum: number of the signal.
 *
@@ -980,21 +975,26 @@ void reaper(int signum)
 */
 void ctrlc(int signum)
 {
-
-    printf("\n");
-
-    #ifdef USE_READLINE
-    print_prompt();
-    #endif
     // Check if there is a job in foreground.
     if (jobs_list[FOREGROUND].pid > foreground.pid)
     {
         // Checks if it is not the minishell.
         if (strcmp(jobs_list[FOREGROUND].command_line, minishell.command_line))
         {
+            // Prints line break.
+            printf("\n");
             // If it is not the minishell then send SIGTERM to the job.
             kill(jobs_list[FOREGROUND].pid, SIGTERM);
         }
+    }
+    else
+    {
+        // Prints line break.
+        printf("\n");
+#ifdef USE_READLINE
+        // if READLINE is used then prints the prompt.  
+        print_prompt();
+#endif
     }
     // Sets SIGINT to the function ctrlc.
     signal(SIGINT, ctrlc);
@@ -1012,21 +1012,18 @@ void ctrlc(int signum)
 */
 void ctrlz(int signum)
 {
-
-    printf("\n");
-
-    #ifdef USE_READLINE
-    print_prompt();
-    #endif
-
+    
     // Check if there is a foreground job.
     if (jobs_list[FOREGROUND].pid != foreground.pid)
     {
         // Checks if the foreground is not the minishell.
         if (strcmp(jobs_list[FOREGROUND].command_line, minishell.command_line))
         {
+            // Prints line break.
+            printf("\n");
+
             // Sends the signal to stop to the foreground job.
-            kill(jobs_list[FOREGROUND].pid, SIGTSTP);
+            kill(jobs_list[FOREGROUND].pid, SIGSTOP);
 
             // Updates the stopped job and adds it to the jobs queue.
             jobs_list[FOREGROUND].status = STOPPED;
@@ -1039,6 +1036,15 @@ void ctrlz(int signum)
             jobs_list[FOREGROUND].status = foreground.status;
             strcpy(jobs_list[FOREGROUND].command_line, foreground.command_line);
         }
+    }
+    else
+    {
+        // Prints line break.
+        printf("\n");
+#ifdef USE_READLINE
+        // if READLINE is used then prints the prompt.  
+        print_prompt();
+#endif
     }
     // Sets SIGSTP to the function ctrlz.
     signal(SIGTSTP, ctrlz);
