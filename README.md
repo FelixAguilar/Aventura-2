@@ -1,17 +1,17 @@
-TITULO: AVENTURA 2\n
-DESCRIPCION: MINISHELL\n
-GRUPO: TryHards\n
-AUTORES: FELIX AGUILAR FERRER, ADRIAN BENNASAR POLZIN Y ALVARO BUENO LOPEZ\n
-FECHA: 15/12/2019\n
+#TITULO: AVENTURA 2
+######DESCRIPCION: MINISHELL
+######GRUPO: TryHards
+######AUTORES: FELIX AGUILAR FERRER, ADRIAN BENNASAR POLZIN Y ALVARO BUENO LOPEZ
+######FECHA: 15/12/2019
 
 Este shell permite ejecutar un conjunto de comandos internos definidos en este 
 y cualquier comando externo. El conjunto de comandos internos es: 
-	- cd: permite cambiar de directorio.
-	- export: permite cambiar el valor de una variable de entorno.
-	- source: permite la ejecución de comandos contenidos en un archivo.
-	- jobs: muestra los trabajos activos en segundo plano y detenidos.
-	- fg: permite ejecutar un trabajo en primer plano.
-	- bg: permite ejecutar un trabajo en segundo plano.
+- cd: permite cambiar de directorio.
+- export: permite cambiar el valor de una variable de entorno.
+- source: permite la ejecución de comandos contenidos en un archivo.
+- jobs: muestra los trabajos activos en segundo plano y detenidos.
+- fg: permite ejecutar un trabajo en primer plano.
+- bg: permite ejecutar un trabajo en segundo plano.
 
 Además de estos comandos internos se puede modificar el estado de un trabajo 
 utilizando Ctrl+C, este finaliza la ejecución del trabajo en primer plano,
