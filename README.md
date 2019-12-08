@@ -1,8 +1,8 @@
-TITULO: AVENTURA 2.
-DESCRIPCION: MINISHELL.
-GRUPO: TryHards.
-AUTORES: FELIX AGUILAR FERRER, ADRIAN BENNASAR POLZIN Y ALVARO BUENO LOPEZ.
-FECHA: 15/12/2019.
+TITULO: AVENTURA 2\n
+DESCRIPCION: MINISHELL\n
+GRUPO: TryHards\n
+AUTORES: FELIX AGUILAR FERRER, ADRIAN BENNASAR POLZIN Y ALVARO BUENO LOPEZ\n
+FECHA: 15/12/2019\n
 
 Este shell permite ejecutar un conjunto de comandos internos definidos en este 
 y cualquier comando externo. El conjunto de comandos internos es: 
